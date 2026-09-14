@@ -7,7 +7,7 @@
 #
 # No versions are pinned: any recent release works. If a fresh install
 # ever breaks, pin the version that worked and say so in your Sources.
-#tests
+
 
 numpy
 scipy
