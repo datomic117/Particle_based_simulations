@@ -4,6 +4,9 @@
 
 #include "vec3d.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 double compute_acc_and_potential(
     int N,
     const double *m,
