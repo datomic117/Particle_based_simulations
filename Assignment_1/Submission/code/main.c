@@ -1,63 +1,13 @@
-/* all .c/.h (incl. vec3d.h) + README.md with build/run instructions; no binaries */
+#include "vec3d.h"
+#include "io.h"
+#include "forces.h"
+#include "integrate.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 #define G 6.6743015e-11
-
-typedef struct Vec3D {
-    double x, y, z;
-} Vec3D;
-
-/* Vector helper functions */
-
-static inline Vec3D v3(double x, double y, double z)
-{
-    Vec3D v = {x, y, z};
-    return v;
-}
-
-static inline Vec3D add(Vec3D a, Vec3D b)
-{
-    return v3(a.x + b.x,
-              a.y + b.y,
-              a.z + b.z);
-}
-
-static inline Vec3D sub(Vec3D a, Vec3D b)
-{
-    return v3(a.x - b.x,
-              a.y - b.y,
-              a.z - b.z);
-}
-
-static inline Vec3D scl(double s, Vec3D a)
-{
-    return v3(s * a.x,
-              s * a.y,
-              s * a.z);
-}
-
-static inline double dot(Vec3D a, Vec3D b)
-{
-    return a.x * b.x
-         + a.y * b.y
-         + a.z * b.z;
-}
-
-static inline Vec3D cross(Vec3D a, Vec3D b)
-{
-    return v3(a.y * b.z - a.z * b.y,
-              a.z * b.x - a.x * b.z,
-              a.x * b.y - a.y * b.x);
-}
-
-static inline double norm(Vec3D a)
-{
-    return sqrt(dot(a, a));
-}
-
 
 /* Count the number of bodies in a snapshot file */
 
