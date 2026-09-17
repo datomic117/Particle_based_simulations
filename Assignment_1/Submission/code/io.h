@@ -3,6 +3,8 @@
 #define IO_H
 
 #include "vec3d.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /*Declare all functions for input/output*/
 

@@ -7,12 +7,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define G 6.6743015e-11
-
-/* Count the number of bodies in a snapshot file */
-
-
-
 
 int main(void)
 {

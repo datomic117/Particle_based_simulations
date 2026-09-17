@@ -1,4 +1,5 @@
 #include "forces.h"
+#define G 6.6743015e-11
 
 double compute_acc_and_potential(
     int N,
