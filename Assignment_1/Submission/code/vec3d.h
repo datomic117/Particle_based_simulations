@@ -2,7 +2,6 @@
 #ifndef VEC3D_H
 #define VEC3D_H
 
-#include <math.h>
 
 /* File for the definition of struct Vec3D. 
 Helper funcions are included because they are
