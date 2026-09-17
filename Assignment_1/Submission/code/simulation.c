@@ -161,7 +161,7 @@ int read_initial_conditions(const char *filename,
 
 int main(void)
 {
-    const char *filename = "../bodies_2026-09-01.dat";
+    const char *filename = "C:\\Users\\20231118\\Particle_based_simulation\\Assignment_1\\Submission\\data\\bodies_2026-09-01.dat";
 
     /* Determine the number of bodies from the input file */
     int N = count_bodies(filename);
