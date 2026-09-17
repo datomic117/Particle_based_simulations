@@ -1,5 +1,4 @@
-all .c/.h (incl. vec3d.h) + README.md with build/run instructions; no binaries
-
+/* all .c/.h (incl. vec3d.h) + README.md with build/run instructions; no binaries */
 
 #include <stdio.h>
 #include <stdlib.h>
