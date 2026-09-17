@@ -60,7 +60,7 @@ static inline Vec3D v_cross(Vec3D a, Vec3D b)
 
 static inline double v_norm(Vec3D a)
 {
-    //Removed dot for optimisation
+    //Removed dot product function for optimisation
     return sqrt(a.x * a.x
          + a.y * a.y
          + a.z * a.z);
