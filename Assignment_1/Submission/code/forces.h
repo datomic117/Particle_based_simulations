@@ -1,3 +1,4 @@
+//Useful to avoid repeated importing of a .h file
 #ifndef FORCES_H
 #define FORCES_H
 
@@ -10,4 +11,5 @@ double compute_acc_and_potential(
     Vec3D *a
 );
 
+//Necessary to make #ifndef work
 #endif
