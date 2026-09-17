@@ -5,12 +5,32 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 
-int main(void)
+int main(int argc, char *argv[])
 {
     const char *filename = "../data/bodies_2026-09-01.dat";
+
+    /* Runtime flag: pick the integrator from the command line,
+    e.g. "./sim --integrator euler" (default: velocity-Verlet) */
+    Integrator_type integrator = VERLET;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--integrator") == 0 && i + 1 < argc) {
+            i++;
+
+            if (strcmp(argv[i], "euler") == 0) {
+                integrator = EULER;
+            } else if (strcmp(argv[i], "verlet") == 0) {
+                integrator = VERLET;
+            } else {
+                printf("Unknown integrator: %s\n", argv[i]);
+                return 1;
+            }
+        }
+    }
 
     /* Determine the number of bodies from the input file */
     int N = count_bodies(filename);
@@ -52,6 +72,21 @@ int main(void)
     }
 
     printf("Initial conditions read successfully.\n");
+
+
+    /* Compute the initial accelerations before stepping */
+    compute_acc_and_potential(N, m, r, a);
+
+    /* Placeholder time-stepping loop; step count and dt will become
+    command-line options once B6/B7 (diagnostics/trajectory output) are done */
+    double dt = 3600.0;
+    int n_steps = 10;
+
+    for (int step = 0; step < n_steps; step++) {
+        integrate_step(integrator, N, m, r, v, a, dt);
+    }
+
+    printf("Ran %d steps.\n", n_steps);
 
 
     /* Free dynamically allocated memory */
