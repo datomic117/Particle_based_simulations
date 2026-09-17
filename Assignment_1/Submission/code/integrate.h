@@ -16,9 +16,28 @@ typedef enum{
 Both integrators leave r, v and a updated for the new time step,
 and return the potential energy U at the new positions. */
 
-double euler_step(int N, const double *m, Vec3D *r, Vec3D *v, Vec3D *a, double dt);
-double verlet_step(int N, const double *m, Vec3D *r, Vec3D *v, Vec3D *a, double dt);
-double integrate_step(Integrator_type integrator, int N, const double *m, Vec3D *r, Vec3D *v, Vec3D *a, double dt);
+double euler_step(
+    int N,
+    const double *m,
+    Vec3D *r, Vec3D *v,
+    Vec3D *a,
+    double dt);
+
+double verlet_step(
+    int N,
+    const double *m,
+    Vec3D *r,
+    Vec3D *v,
+    Vec3D *a,
+    double dt);
+
+double integrate_step(
+    Integrator_type integrator,
+    int N, const double *m,
+    Vec3D *r,
+    Vec3D *v,
+    Vec3D *a,
+    double dt);
 
 //Necessary to make #ifndef work
 #endif

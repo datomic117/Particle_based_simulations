@@ -15,8 +15,8 @@ double euler_step(
 ) {
     // Update positions and velocities using the acceleration at t
     for (int i = 0; i < N; i++) {
-        r[i] = v_add(r[i], V_scl(dt, v[i]));
-        v[i] = v_add(v[i], V_scl(dt, a[i]));
+        r[i] = v_add(r[i], v_scl(dt, v[i]));
+        v[i] = v_add(v[i], v_scl(dt, a[i]));
     }
 
     // Recompute accelerations (and potential energy) at the new positions
@@ -44,7 +44,7 @@ double verlet_step(
     for (int i = 0; i < N; i++) {
         r[i] = v_add(
             r[i],
-            v_add(V_scl(dt, v[i]), V_scl(0.5 * dt * dt, a_old[i]))
+            v_add(v_scl(dt, v[i]), v_scl(0.5 * dt * dt, a_old[i]))
         );
     }
 
@@ -55,7 +55,7 @@ double verlet_step(
     for (int i = 0; i < N; i++) {
         v[i] = v_add(
             v[i],
-            V_scl(0.5 * dt, v_add(a_old[i], a[i]))
+            v_scl(0.5 * dt, v_add(a_old[i], a[i]))
         );
     }
 

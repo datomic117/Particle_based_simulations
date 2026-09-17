@@ -37,7 +37,7 @@ static inline Vec3D v_sub(Vec3D a, Vec3D b)
               a.z - b.z);
 }
 
-static inline Vec3D V_scl(double s, Vec3D a)
+static inline Vec3D v_scl(double s, Vec3D a)
 {
     return v_out(s * a.x,
               s * a.y,

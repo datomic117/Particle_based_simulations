@@ -31,13 +31,13 @@ double compute_acc_and_potential(
             // Acceleration of body i due to body j
             a[i] = v_add(
                 a[i],
-                V_scl(factor * m[j], rij_vec)
+                v_scl(factor * m[j], rij_vec)
             );
 
             // Acceleration of body j due to body i
             a[j] = v_add(
                 a[j],
-                V_scl(-factor * m[i], rij_vec)
+                v_scl(-factor * m[i], rij_vec)
             );
 
             // Add this pair's potential energy
