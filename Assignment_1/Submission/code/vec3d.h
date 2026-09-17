@@ -4,7 +4,7 @@
 
 #include <math.h>
 
-/* File for the definition of struct Vec3D. 
+/* File for the definition of struct Vec3D.
 Helper funcions are included because they are
 static inline.*/
 

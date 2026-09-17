@@ -103,14 +103,49 @@ int read_initial_conditions(const char *filename,
 
 
 //Compute K, U, E, L, R_com per step and save to a new file
-void write_diagnostics_row(FILE *f, int step, double t, double K, double U,
-                            Vec3D L, Vec3D Rcom) 
+void write_diagnostics_row(FILE *f, int step, double t, int N, const double *m, const Vec3D *r, const Vec3D *v, double U) 
 {
+
+/* Kinetic energy */
+double K = 0.0;
+
+for (int i = 0; i < N; i++) {
+    K += 0.5 * m[i] * v_dot(v[i], v[i]);
+}
+
+/* Total energy */
+double E = K + U;
+
+/* Angular momentum */
+Vec3D L = v_out(0.0, 0.0, 0.0);
+
+for (int i = 0; i < N; i++) {
+    L = v_add(
+        L,
+        v_cross(r[i], V_scl(m[i], v[i]))
+    );
+}
+
+/* Centre of mass */
+Vec3D Rcom = v_out(0.0, 0.0, 0.0);
+double total_mass = 0.0;
+
+for (int i = 0; i < N; i++) {
+    Rcom = v_add(
+        Rcom,
+        V_scl(m[i], r[i])
+    );
+
+    total_mass += m[i];
+}
+
+Rcom = V_scl(1.0 / total_mass, Rcom);
 
 
 }   
                             
-                            
+
+
 //Save the trajectory of the bodies every step
 void write_trajectory_frame(FILE *f, int N, int step, double t, const Vec3D *r)
 
