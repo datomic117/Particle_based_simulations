@@ -18,14 +18,18 @@ int main(int argc, char *argv[])
     const char *filename = "../data/bodies_2026-09-01.dat";
 
     /* Runtime flags: configure the run from the command line, e.g.
-    "./main --integrator euler --dt 3600 --steps 10 --trajectory-every 2 --bodies Sun,Earth,Moon"
-    (defaults: velocity-Verlet, dt = 3600 s, 10 steps, save every 2nd frame, for the Sun,Earth and Moon) */
+    "./main --integrator euler --dt 3600 --steps 10 --trajectory-every 2 --diagnostics-every 1 --bodies Sun,Earth,Moon"
+    (defaults: velocity-Verlet, dt = 3600 s, 10 steps, save every 2nd trajectory
+    frame and every diagnostics row, for the Sun,Earth and Moon).*/
+
     Integrator_type integrator = VERLET;
     double dt = 3600.0;
     int n_steps = 10;
     int trajectory_every = 2;
+    int diagnostics_every = 1;
     char *bodies_arg = NULL;
 
+    //CLI input parsing
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--integrator") == 0 && i + 1 < argc) {
             i++;
@@ -38,6 +42,7 @@ int main(int argc, char *argv[])
                 printf("Unknown integrator: %s\n", argv[i]);
                 return 1;
             }
+
         } else if (strcmp(argv[i], "--dt") == 0 && i + 1 < argc) {
             i++;
             //atof is for string to float
@@ -47,6 +52,7 @@ int main(int argc, char *argv[])
             } else {
                 dt = atof(argv[i]);
             }
+
         } else if (strcmp(argv[i], "--steps") == 0 && i + 1 < argc) {
             i++;
             //atoi is for string to integer
@@ -56,6 +62,7 @@ int main(int argc, char *argv[])
             } else {
                 n_steps = atoi(argv[i]);
             }
+
         } else if (strcmp(argv[i], "--trajectory-every") == 0 && i + 1 < argc) {
             i++;
             if (atoi(argv[i]) <= 0){
@@ -65,6 +72,14 @@ int main(int argc, char *argv[])
                 trajectory_every = atoi(argv[i]);
             }
 
+        } else if (strcmp(argv[i], "--diagnostics-every") == 0 && i + 1 < argc) {
+            i++;
+            if (atoi(argv[i]) <= 0) {
+                printf("Invalid --diagnostics-every input!\n");
+                return 1;
+            } else {
+                diagnostics_every = atoi(argv[i]);
+            }
 
         } else if (strcmp(argv[i], "--bodies") == 0 && i + 1 < argc) {
             i++;
@@ -78,6 +93,7 @@ int main(int argc, char *argv[])
     char *bodies_copy = NULL;
     int n_body_names = 0;
 
+    //Alocate space for new array of strings
     if (bodies_arg != NULL) {
         bodies_copy = (char*)malloc(strlen(bodies_arg) + 1);
         strcpy(bodies_copy, bodies_arg);
@@ -86,9 +102,13 @@ int main(int argc, char *argv[])
 
         char *token = strtok(bodies_copy, ",");
 
+        //create an array for the body names
         while (token != NULL) {
             if (n_body_names >= capacity) {
                 capacity *= 2;
+                //allocate more memory if the string is no big enough
+                //realloc used in order to not leak memory from the
+                //previous array
                 body_names = (char**)realloc(body_names, capacity * sizeof(char *));
             }
 
@@ -96,7 +116,7 @@ int main(int argc, char *argv[])
             n_body_names++;
             
             /*strtok actually moves forward in the bodies_copy
-            arrat when given NULL as an argument*/
+            array when given NULL as an argument*/
             token = strtok(NULL, ",");
         }
     }
@@ -187,12 +207,16 @@ int main(int argc, char *argv[])
     write_diagnostics_row(diag_file, 0, 0.0, N, m, r, v, U);
     write_trajectory_frame(traj_file, N, 0, 0.0, r);
 
+
+    // Determine the diagnostics and trajectory and save
     for (int step = 1; step <= n_steps; step++) {
         U = integrate_step(integrator, N, m, r, v, a, dt);
 
         double t = step * dt;
 
-        write_diagnostics_row(diag_file, step, t, N, m, r, v, U);
+        if (step % diagnostics_every == 0) {
+            write_diagnostics_row(diag_file, step, t, N, m, r, v, U);
+        }
 
         if (step % trajectory_every == 0) {
             write_trajectory_frame(traj_file, N, step, t, r);
@@ -201,6 +225,7 @@ int main(int argc, char *argv[])
 
     printf("Ran %d steps.\n", n_steps);
 
+    //close files
     fclose(diag_file);
     fclose(traj_file);
 
