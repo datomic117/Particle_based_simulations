@@ -1,0 +1,3 @@
+﻿Number of bodies: 12
+Initial conditions read successfully.
+Ran 96384 steps.
