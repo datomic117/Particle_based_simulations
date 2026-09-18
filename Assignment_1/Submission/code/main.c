@@ -18,12 +18,13 @@ int main(int argc, char *argv[])
     const char *filename = "../data/bodies_2026-09-01.dat";
 
     /* Runtime flags: configure the run from the command line, e.g.
-    "./sim --integrator euler --dt 3600 --steps 10 --trajectory-every 2"
-    (defaults: velocity-Verlet, dt = 3600 s, 10 steps, save every 2nd frame) */
+    "./main --integrator euler --dt 3600 --steps 10 --trajectory-every 2 --bodies Sun,Earth,Moon"
+    (defaults: velocity-Verlet, dt = 3600 s, 10 steps, save every 2nd frame, for the Sun,Earth and Moon) */
     Integrator_type integrator = VERLET;
     double dt = 3600.0;
     int n_steps = 10;
     int trajectory_every = 2;
+    char *bodies_arg = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--integrator") == 0 && i + 1 < argc) {
@@ -65,18 +66,50 @@ int main(int argc, char *argv[])
             }
 
 
+        } else if (strcmp(argv[i], "--bodies") == 0 && i + 1 < argc) {
+            i++;
+            bodies_arg = argv[i];
         }
     }
 
-    /* Determine the number of bodies from the input file */
-    int N = count_bodies(filename);
+    /* If --bodies was given, split it into an array of names, e.g.
+    "--bodies Sun,Earth,Moon" -> {"Sun", "Earth", "Moon"} */
+    char **body_names = NULL;
+    char *bodies_copy = NULL;
+    int n_body_names = 0;
 
-    if (N <= 0) {
-        return 1;
+    if (bodies_arg != NULL) {
+        bodies_copy = (char*)malloc(strlen(bodies_arg) + 1);
+        strcpy(bodies_copy, bodies_arg);
+        int capacity = 8;
+        body_names = (char**)malloc(capacity * sizeof(char *));
+
+        char *token = strtok(bodies_copy, ",");
+
+        while (token != NULL) {
+            if (n_body_names >= capacity) {
+                capacity *= 2;
+                body_names = (char**)realloc(body_names, capacity * sizeof(char *));
+            }
+
+            body_names[n_body_names] = token;
+            n_body_names++;
+            
+            /*strtok actually moves forward in the bodies_copy
+            arrat when given NULL as an argument*/
+            token = strtok(NULL, ",");
+        }
     }
 
-    printf("Number of bodies: %d\n", N);
+    /* Determine the number of bodies to simulate: every body in the file,
+    unless --bodies restricted it to a named subset */
+    int N = (body_names != NULL) ? n_body_names : count_bodies(filename);
 
+    if (N <= 0) {
+        free(body_names);
+        free(bodies_copy);
+        return 1;
+    }
 
     /* Dynamically allocate the simulation arrays */
     double *m = malloc(N * sizeof(double));
@@ -95,10 +128,24 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-
     /* Read the initial conditions */
-    if (!read_initial_conditions(filename, N, m, r, v)) {
+    int ok;
 
+    if (body_names != NULL) {
+        int n_found = read_bodies_by_name(filename, body_names, n_body_names, m, r, v);
+        ok = (n_found == N);
+
+        if (!ok) {
+            printf("Requested %d bodies, found %d\n", N, n_found);
+        }
+    } else {
+        ok = read_initial_conditions(filename, N, m, r, v);
+    }
+
+    free(body_names);
+    free(bodies_copy);
+
+    if (!ok) {
         free(m);
         free(r);
         free(v);
@@ -107,6 +154,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    printf("Number of bodies: %d\n", N);
     printf("Initial conditions read successfully.\n");
 
 

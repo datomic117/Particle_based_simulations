@@ -1,5 +1,22 @@
 #include "io.h"
 #include "vec3d.h"
+#include <string.h>
+#include <ctype.h>
+
+/* Case-insensitive string comparison (portable substitute for
+strcasecmp/_stricmp, which aren't standard C) */
+static int names_match(const char *a, const char *b)
+{
+    while (*a && *b) {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) {
+            return 0;
+        }
+        a++;
+        b++;
+    }
+
+    return *a == '\0' && *b == '\0';
+}
 
 /*File for the definition of all input/ouput functions.
 This also includes the diagnostics function from B6*/
@@ -99,6 +116,72 @@ int read_initial_conditions(const char *filename,
     }
 
     return 1;
+}
+
+
+/* Read only the named bodies (case-insensitive match on the file's
+"name" column), in whatever order they appear in the file */
+int read_bodies_by_name(
+    const char *filename,
+    char **names,
+    int n_names,
+    double *m,
+    Vec3D *r,
+    Vec3D *v)
+{
+    FILE *file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Could not open input file: %s\n", filename);
+        return -1;
+    }
+
+    char line[512];
+    int i = 0;
+
+    while (i < n_names && fgets(line, sizeof(line), file) != NULL) {
+
+        if (line[0] == '#') {
+            continue;
+        }
+
+        if (line[0] == '\n' || line[0] == '\0') {
+            continue;
+        }
+
+        int id;
+        char name[64];
+        double mass;
+        Vec3D pos, vel;
+
+        int items = sscanf(line,
+                           "%d %63s %lf %lf %lf %lf %lf %lf %lf",
+                           &id,
+                           name,
+                           &mass,
+                           &pos.x, &pos.y, &pos.z,
+                           &vel.x, &vel.y, &vel.z);
+
+        if (items != 9) {
+            printf("Error reading input data: %s", line);
+            fclose(file);
+            return -1;
+        }
+
+        for (int k = 0; k < n_names; k++) {
+            if (names_match(name, names[k])) {
+                m[i] = mass;
+                r[i] = pos;
+                v[i] = vel;
+                i++;
+                break;
+            }
+        }
+    }
+
+    fclose(file);
+
+    return i;
 }
 
 

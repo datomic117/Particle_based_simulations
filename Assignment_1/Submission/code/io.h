@@ -17,6 +17,18 @@ int read_initial_conditions(
     Vec3D *r,
     Vec3D *v);
 
+/* Read only the named bodies (case-insensitive match on the file's
+"name" column), in whatever order they appear in the file. Returns
+the number of bodies actually found and filled into m/r/v (at most
+n_names), or -1 if the file could not be opened. */
+int read_bodies_by_name(
+    const char *filename,
+    char **names,
+    int n_names,
+    double *m,
+    Vec3D *r,
+    Vec3D *v);
+
 void write_diagnostics_row(
     FILE *f,
     int step,
