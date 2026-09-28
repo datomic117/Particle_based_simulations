@@ -137,6 +137,10 @@ int main(void)
         return 0;
     }
 
+
+
+    printf("step,time_internal,Epot_internal,Ekin_internal,Etot_internal,T_internal\n");
+
     // Main MD loop using velocity-Verlet integration
     while (step < parameters.num_dt_steps) 
     { 
@@ -176,11 +180,19 @@ int main(void)
 
         /// \todo Implement on-the-fly analysis of velocity distribution, torsion angle distribution and mean-square displacement
         // Print to the screen to monitor the progress of the simulation
+       
         if (step % parameters.num_dt_output == 0)
         {
-            /// \todo Write the output (also) to file, and extend the output with temperature
-            printf("Step %lu, Time %f, Epot %f, Ekin %f, Etot %f\n", (long unsigned)step, time, Epot, Ekin, Epot + Ekin);
+            const double dof = 3.0 * (double)parameters.num_part - 3.0;
+            const double temperature = 2.0 * Ekin / dof;
+
+            printf("%zu,%.15g,%.15g,%.15g,%.15g,%.15g\n",
+                   step, time, Epot, Ekin, Epot + Ekin, temperature);
         }
+
+
+
+
     }
 
     // Save final state
