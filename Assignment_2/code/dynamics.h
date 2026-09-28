@@ -46,3 +46,4 @@ void boundary_conditions(struct Parameters *p_parameters, struct Vectors *p_vect
 void thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, double Ekin);
 
 #endif /* DYNAMICS_H_ */
+

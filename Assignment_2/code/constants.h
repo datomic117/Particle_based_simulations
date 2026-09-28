@@ -5,6 +5,9 @@
 
 #define PI 3.141592653589
 #define SEED 13
-/// \todo Define the number of particle types needed for n-pentane (CH3 and CH2)
+
+#define NUM_TYPES 2
+#define TYPE_CH3 0
+#define TYPE_CH2 1
 
 #endif /* CONSTANTS_H_ */

@@ -148,62 +148,87 @@ double calculate_forces_dihedral(struct Parameters *p_parameters, struct Vectors
 
 // This function calculates non-bonded forces between particles using the neighbor list.
 // The potential energy and forces are calculated using the Lennard-Jones potential.
-double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist, struct Vectors *p_vectors)
+double calculate_forces_nb(struct Parameters *p_parameters,
+                          struct Nbrlist *p_nbrlist,
+                          struct Vectors *p_vectors)
 {
-    struct Vec3D df;
-    double r_cutsq, sr2, sr6, sr12, fr;
-    struct DeltaR rij;
-    struct Pair *nbr = p_nbrlist->nbr;
-    const size_t num_nbrs = p_nbrlist->num_nbrs;
-    struct Vec3D *f = p_vectors->f;
-    struct Vec3D *r_pos = p_vectors->r;
-    const struct Vec3D L = p_parameters->L;
-
-    r_cutsq = p_parameters->r_cut * p_parameters->r_cut;
     double Epot = 0.0;
 
-    double sigmasq = p_parameters->sigma * p_parameters->sigma;
-    double epsilon = p_parameters->epsilon;
+    const double r_cutsq =
+        p_parameters->r_cut * p_parameters->r_cut;
 
-    double Epot_cutoff;
-    sr2 = sigmasq / r_cutsq;
-    sr6 = sr2 * sr2 * sr2;
-    sr12 = sr6 * sr6;
-    Epot_cutoff = sr12 - sr6;
+    const struct Vec3D L = p_parameters->L;
+    struct Vec3D *r = p_vectors->r;
+    struct Vec3D *f = p_vectors->f;
+    struct Pair *nbr = p_nbrlist->nbr;
 
-    // Loop through the neighbor list and calculate the forces for each particle pair
-    for (size_t k = 0; k < num_nbrs; k++)
+    for (size_t pair = 0; pair < p_nbrlist->num_nbrs; pair++)
     {
-        size_t i = nbr[k].i;
-        size_t j = nbr[k].j;
-        // The pair list holds only the pairs; the connecting vector is taken
-        // from the current positions. A pair is far closer than half a box, so
-        // the cheap minimum image applies.
-        rij.v = v3_min_image(v3_sub(r_pos[i], r_pos[j]), L);
-        rij.sq = v3_dot(rij.v, rij.v);
-        // Compute forces if the distance is smaller than the cutoff distance
-        if (rij.sq < r_cutsq)
+        const size_t i = nbr[pair].i;
+        const size_t j = nbr[pair].j;
+        const double factor = nbr[pair].factor;
+
+        // Excluded pairs contribute neither energy nor force.
+        if (factor == 0.0)
+            continue;
+
+        const struct Vec3D rij =
+            v3_min_image(v3_sub(r[i], r[j]), L);
+
+        const double r_sq = v3_dot(rij, rij);
+
+        if (r_sq >= r_cutsq)
+            continue;
+
+        if (r_sq == 0.0)
         {
-            double factor = nbr[k].factor; // 0 or 1, or the 1-4 scaling factor
-            /// \todo Make the LJ parameters type-dependent (CH3 and CH2)
-
-            // The LJ powers are computed by squaring: (sigma/r)^6 and
-            // (sigma/r)^12 from (sigma/r)^2, with no call to pow()
-            sr2 = sigmasq / rij.sq;
-            sr6 = sr2 * sr2 * sr2;
-            sr12 = sr6 * sr6;
-
-            // Calculate the potential energy, shifted to zero at the cutoff
-            Epot += factor * 4.0 * epsilon * (sr12 - sr6 - Epot_cutoff);
-
-            // Compute the force and apply it to both particles
-            fr = factor * 24.0 * epsilon * (2.0 * sr12 - sr6) / rij.sq;  // Force divided by distance: multiplying by the vector rij then gives the force, with no sqrt needed
-            p_vectors->press_vir_nb += fr * rij.sq; // virial contribution f_ij . r_ij
-            df = v3_scl(fr, rij.v);
-            // Update forces on particles i and j
-            f[i] = v3_add(f[i], df);
-            f[j] = v3_sub(f[j], df);
+            fprintf(stderr,
+                    "Error: interacting sites %zu and %zu overlap.\n",
+                    i, j);
+            exit(EXIT_FAILURE);
         }
+
+        const int type_i = p_vectors->type[i];
+        const int type_j = p_vectors->type[j];
+
+        // Lorentz-Berthelot mixing rules.
+        const double sigma =
+            0.5 * (p_parameters->sigma[type_i]
+                 + p_parameters->sigma[type_j]);
+
+        const double epsilon =
+            sqrt(p_parameters->epsilon[type_i]
+               * p_parameters->epsilon[type_j]);
+
+        const double sigma_sq = sigma * sigma;
+
+        // Powers of sigma/r for the current separation.
+        const double sr2 = sigma_sq / r_sq;
+        const double sr6 = sr2 * sr2 * sr2;
+        const double sr12 = sr6 * sr6;
+
+        // The energy shift must use this pair's parameters too.
+        const double sc2 = sigma_sq / r_cutsq;
+        const double sc6 = sc2 * sc2 * sc2;
+        const double sc12 = sc6 * sc6;
+
+        Epot += factor * 4.0 * epsilon
+              * (sr12 - sr6 - sc12 + sc6);
+
+        // Force on i = coefficient * (r_i - r_j).
+        const double coefficient =
+            factor * 24.0 * epsilon
+            * (2.0 * sr12 - sr6) / r_sq;
+
+        const struct Vec3D force_ij =
+            v3_scl(coefficient, rij);
+
+        f[i] = v3_add(f[i], force_ij);
+        f[j] = v3_sub(f[j], force_ij);
+
+        // Accumulate the non-bonded virial.
+        p_vectors->press_vir_nb += coefficient * r_sq;
     }
-    return Epot; // Return the potential energy due to non-bonded interactions
+
+    return Epot;
 }

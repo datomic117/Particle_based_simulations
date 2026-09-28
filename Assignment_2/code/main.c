@@ -152,8 +152,10 @@ int main(void)
         Ekin = update_velocities_half_dt(&parameters, &nbrlist, &vectors); 
 
         /// \todo Implement and apply the Berendsen thermostat to maintain temperature (dynamics.c)
-        if (parameters.is_NVT == 1)
-            thermostat(&parameters, &vectors, Ekin); 
+ 
+
+
+
 
         // Update positions
         update_positions(&parameters, &nbrlist, &vectors); 
@@ -169,6 +171,23 @@ int main(void)
 
         // Final velocity update (half-step)
         Ekin = update_velocities_half_dt(&parameters, &nbrlist, &vectors); 
+
+        // Apply the thermostat after the complete velocity-Verlet step.
+        if (parameters.is_NVT == 1)
+        {
+            thermostat(&parameters, &vectors, Ekin);
+
+            // Recalculate kinetic energy after scaling the velocities.
+            Ekin = 0.0;
+
+            for (size_t i = 0; i < parameters.num_part; i++)
+            {
+                const double mass = parameters.mass[vectors.type[i]];
+
+                Ekin += 0.5 * mass
+                      * v3_dot(vectors.v[i], vectors.v[i]);
+            }
+        }
 
         // Output system state every 'num_dt_pdb' steps
         if (step % parameters.num_dt_pdb == 0) 

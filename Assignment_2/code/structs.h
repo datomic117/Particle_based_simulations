@@ -147,6 +147,7 @@ struct Parameters
     double factor_13_nb;     //!< Scaling factor for 1-3 non-bonded interactions
     double factor_14_nb;     //!< Scaling factor for 1-4 non-bonded interactions
     double kT;               //!< Thermal energy
+    double tau_T;            //!< Thermostat coupling time in internal units
     double r_cut;            //!< Cut-off distance for LJ interaction
     double r_shell;          //!< Shell thickness for neighbor list
     size_t num_dt_pdb;       //!< Number of time steps between pdb saves
@@ -159,9 +160,9 @@ struct Parameters
     char restart_out_filename[1024]; //!< filename for saved restart file
     /// \todo Make the mass and the LJ parameters depend on the particle type, and
     /// add the parameters of the bond, angle and dihedral potentials and of the thermostat
-    double mass;             //!< Mass of a particle
-    double epsilon;          //!< LJ interaction strength
-    double sigma;            //!< LJ particle diameter
+    double mass[NUM_TYPES];
+    double epsilon[NUM_TYPES];
+    double sigma[NUM_TYPES];
 };
 
 /**

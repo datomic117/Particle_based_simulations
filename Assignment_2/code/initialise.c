@@ -9,11 +9,26 @@
 // This function initializes the particle types. The type of a particle is the
 // index used to look up its type-dependent parameters, such as mass, epsilon
 // and sigma (see pair_index in structs.h for the pair parameters).
-void initialise_types(struct Parameters *p_parameters, struct Vectors *p_vectors)
+
+void initialise_types(struct Parameters *p_parameters,
+                      struct Vectors *p_vectors)
 {
-    /// \todo Initialize particle types in the vectors.type array
+    if (p_parameters->num_part % 5 != 0)
+    {
+        fprintf(stderr,
+                "Error: the number of sites must be a multiple of five.\n");
+        exit(EXIT_FAILURE);
+    }
+
     for (size_t i = 0; i < p_parameters->num_part; i++)
-        p_vectors->type[i] = 0; // Specify particle type (currently only one type)
+    {
+        const size_t position_in_molecule = i % 5;
+
+        if (position_in_molecule == 0 || position_in_molecule == 4)
+            p_vectors->type[i] = TYPE_CH3;
+        else
+            p_vectors->type[i] = TYPE_CH2;
+    }
 }
 
 // This function initializes the bond connectivity between particles.
@@ -244,25 +259,36 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
 
 // This function initializes the velocities of particles based on the Maxwell-Boltzmann distribution.
 // The total momentum is also removed to ensure zero total momentum (important for stability).
-void initialise_velocities(struct Parameters *p_parameters, struct Vectors *p_vectors)
+void initialise_velocities(struct Parameters *p_parameters,
+                           struct Vectors *p_vectors)
 {
-    /// \todo Use the type-dependent mass, and remove the total momentum rather
-    /// than the average velocity, once the particles have different masses
-    double sqrtktm = sqrt(p_parameters->kT / p_parameters->mass);
-    struct Vec3D sumv = {0.0, 0.0, 0.0};  // Total velocity (to remove later)
-    Vec3D *v = p_vectors->v;  // Pointer to particle velocities
+    struct Vec3D momentum = {0.0, 0.0, 0.0};
+    double total_mass = 0.0;
 
-    // Assign random velocities to each particle
+    struct Vec3D *v = p_vectors->v;
+
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
-        v[i] = v3_scl(sqrtktm, v3(gauss(), gauss(), gauss()));
-        sumv = v3_add(sumv, v[i]);
+        const int type = p_vectors->type[i];
+        const double mass = p_parameters->mass[type];
+        const double stddev = sqrt(p_parameters->kT / mass);
+
+        // Gaussian velocity components with variance kT / mass.
+        const double gx = gauss();
+        const double gy = gauss();
+        const double gz = gauss();
+
+        v[i] = v3_scl(stddev, v3(gx, gy, gz));
+
+        momentum = v3_add(momentum, v3_scl(mass, v[i]));
+        total_mass += mass;
     }
 
-    // Remove the average velocity to ensure zero total momentum
-    sumv = v3_scl(1.0 / (double)p_parameters->num_part, sumv);
+    // Remove the centre-of-mass velocity to eliminate net momentum.
+    const struct Vec3D v_cm = v3_scl(1.0 / total_mass, momentum);
+
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
-        v[i] = v3_sub(v[i], sumv);
+        v[i] = v3_sub(v[i], v_cm);
     }
 }
