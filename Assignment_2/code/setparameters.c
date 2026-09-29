@@ -34,58 +34,130 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->tau_T = 0.009118;
 
 
+    // -------------------------------------------------------------------------
+    // Bonded force-field parameters for n-pentane
+    // -------------------------------------------------------------------------
+
+    // Harmonic bond potential:
+    //
+    // U_bond(r) = 1/2 * k_b * (r - r_0)^2
+    //
+    // Lengths are expressed in Angstrom and energies in kB K, so the numerical
+    // values supplied in the assignment can be used directly.
+    p_parameters->r_0 = 1.54;          // equilibrium bond length, Angstrom
+    p_parameters->k_b = 3.19e5;        // bond force constant, K / Angstrom^2
+
+
+    // Harmonic angle potential:
+    //
+    // U_angle(theta) = 1/2 * k_theta * (theta - theta_0)^2
+    //
+    // Angles must be expressed in radians in the force calculation.
+    p_parameters->theta_0 =
+        114.0 * M_PI / 180.0;          // equilibrium angle, radians
+
+    p_parameters->k_theta =
+        6.25e4;                        // angle force constant, K / rad^2
+
+
+    // Ryckaert-Bellemans torsion potential:
+    //
+    // U_tors(phi) =
+    //     c_0
+    //   + c_1 * cos(phi)
+    //   + c_2 * cos(phi)^2
+    //   + c_3 * cos(phi)^3
+    //
+    // The coefficients are given in kB K and can therefore also be used
+    // directly in the internal energy units of the program.
+    p_parameters->c_0 = 1010.0;
+    p_parameters->c_1 = -2018.9;
+    p_parameters->c_2 = 136.4;
+    p_parameters->c_3 = 3165.3;
+
+
     // The parameters below control core functionalities of the code, but many values will need to be changed
     //
-    // Run modes (the defaults below are a production NVT run):
+    // Run modes:
     //  - production:      force_test = 0, num_dt_steps > 0, is_NVT = 1
     //  - force check:     force_test > 0 (finite-difference test of the forces on every
     //                     force_test-th particle and of the virial, after which the
     //                     program exits; num_dt_steps is ignored)
     //  - energy check:    is_NVT = 0 (NVE: thermostat off, so Etot must be conserved)
 
-    p_parameters->num_part = 2000;              // number of particles
-    p_parameters->force_test = 0;               // if > 0, test the forces on every force_test-th particle and exit
 
-    // NVT is used here because we want to compare both particle
-    // temperatures with the target temperature of 293 K.
-    p_parameters->is_NVT = 1;                   // if equal 1 NVT ensemble, if equal 0 NVE ensemble
+    // -------------------------------------------------------------------------
+    // B5: long-time NVE energy-conservation test for one pentane molecule
+    // -------------------------------------------------------------------------
 
-    // Output every 20 steps so that enough temperature
-    // samples are available without producing a large file.
-    p_parameters->num_dt_output = 20;            // number of time steps between saves of output file
+    // One n-pentane molecule contains five united-atom sites:
+    //
+    // CH3 - CH2 - CH2 - CH2 - CH3
+    p_parameters->num_part = 5;
+
+
+    // We are no longer doing the finite-difference force test.
+    // Run the actual molecular dynamics trajectory.
+    p_parameters->force_test = 0;
+
+
+    // NVE ensemble:
+    //
+    // no thermostat is applied, so the total energy should remain conserved
+    // apart from the bounded numerical error of velocity-Verlet integration.
+    p_parameters->is_NVT = 0;
 
 
     // Scaling of the non-bonded interaction between nearby atoms of one chain:
-    // 0 leaves the pair out, 1 treats it like any other pair and skips the test.
-
-    p_parameters->factor_12_nb = 0.0;           // 1-2 connected atoms excluded from non-bonded interactions
-    p_parameters->factor_13_nb = 0.0;           // 1-3 connected atoms excluded from non-bonded interactions
-    p_parameters->factor_14_nb = 0.0;           // 1-4 connected atoms excluded, as TraPPE prescribes
+    //
+    // 1-2, 1-3 and 1-4 interactions are excluded.
+    // The 1-5 interaction remains and is therefore included normally.
+    p_parameters->factor_12_nb = 0.0;
+    p_parameters->factor_13_nb = 0.0;
+    p_parameters->factor_14_nb = 0.0;
 
 
     /// \todo Set the time step, box size and cut-off distance to values appropriate
     /// for n-pentane at a mass density of 626 kg/m3
 
-    // Only a short continuation is needed for the
-    // type-dependent temperature check.
-    p_parameters->num_dt_steps = 2000;          // number of time steps
-
-    // 1 fs expressed in the internal simulation time unit
+    // 1 fs expressed in the internal simulation time unit.
     p_parameters->dt = 0.0009118;
 
-    // 2000 united-atom sites = 400 pentane molecules.
-    // At rho = 626 kg/m3 this gives L = 42.461 Angstrom.
+
+    // Long single-molecule NVE trajectory.
+    //
+    // 100000 steps at 1 fs = approximately 100 ps.
+    p_parameters->num_dt_steps = 100000;
+
+
+    // Save thermodynamic quantities every 20 steps.
+    //
+    // This gives 5000 samples over the NVE trajectory, which is more than
+    // enough to inspect the total-energy conservation.
+    p_parameters->num_dt_output = 20;
+
+
+    // Use the same large box as for the single-molecule thermalisation.
+    //
+    // The goal here is an isolated molecule rather than a liquid at the
+    // target density.
     p_parameters->L =
-        (struct Vec3D){42.4612, 42.4612, 42.4612};
+        (struct Vec3D){40.0, 40.0, 40.0};
 
-    p_parameters->r_cut = 14.0;                 // cut-off distance of the non-bonded interaction
-    p_parameters->r_shell = 0.4;                // shell thickness for neighbor list
 
-    p_parameters->num_dt_pdb = 500;             // number of time steps in between pdb outputs
+    // Non-bonded cutoff.
+    p_parameters->r_cut = 14.0;
+
+    // Neighbor-list shell thickness.
+    p_parameters->r_shell = 0.4;
+
+
+    // A PDB frame is not needed very frequently for the energy test.
+    p_parameters->num_dt_pdb = 1000;
 
     strcpy(
         p_parameters->filename_pdb,
-        "trajectories"
+        "b5_nve"
     );                                           // filename (without extension) for pdb file
 
     p_parameters->rescale_output = 1;            // factor used to rescale output lengthscale
@@ -93,23 +165,25 @@ void set_parameters(struct Parameters *p_parameters)
                                                  // based on distances of order 1)
 
 
-    // Start from the equilibrated configuration obtained earlier.
-    p_parameters->load_restart = 1;              // if equal 1 restart file is loaded
+    // Start the NVE run from the previously thermalised molecule.
+    p_parameters->load_restart = 1;
 
     strcpy(
         p_parameters->restart_in_filename,
-        "restart.dat"
-    );                                           // filename for loaded restart file
+        "restart_b5_thermalised.dat"
+    );
 
 
-    p_parameters->num_dt_restart = 2000;         // number of time steps between saves
+    // Save the final NVE configuration separately.
+    //
+    // Do NOT overwrite restart_b5_thermalised.dat, because that is our common
+    // starting point for the B5 verification tests.
+    p_parameters->num_dt_restart = 100000;
 
-    // Use a different output restart name so that the original
-    // equilibrated restart.dat is not overwritten.
     strcpy(
         p_parameters->restart_out_filename,
-        "restart_b3_temperature.dat"
-    );                                           // filename for saved restart file
+        "restart_b5_nve.dat"
+    );
 
 
     // The minimum image convention requires r_cut <= L/2: beyond that a particle

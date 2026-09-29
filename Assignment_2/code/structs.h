@@ -70,7 +70,9 @@ static inline double v3_norm(Vec3D a)
 /** @brief Cross product a x b. */
 static inline Vec3D v3_cross(Vec3D a, Vec3D b)
 {
-    return v3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+    return v3(a.y * b.z - a.z * b.y,
+              a.z * b.x - a.x * b.z,
+              a.x * b.y - a.y * b.x);
 }
 
 /**
@@ -89,9 +91,15 @@ static inline Vec3D v3_cross(Vec3D a, Vec3D b)
  */
 static inline Vec3D v3_min_image(Vec3D r, Vec3D L)
 {
-    if (r.x >= 0.5 * L.x) r.x -= L.x; else if (r.x < -0.5 * L.x) r.x += L.x;
-    if (r.y >= 0.5 * L.y) r.y -= L.y; else if (r.y < -0.5 * L.y) r.y += L.y;
-    if (r.z >= 0.5 * L.z) r.z -= L.z; else if (r.z < -0.5 * L.z) r.z += L.z;
+    if (r.x >= 0.5 * L.x) r.x -= L.x;
+    else if (r.x < -0.5 * L.x) r.x += L.x;
+
+    if (r.y >= 0.5 * L.y) r.y -= L.y;
+    else if (r.y < -0.5 * L.y) r.y += L.y;
+
+    if (r.z >= 0.5 * L.z) r.z -= L.z;
+    else if (r.z < -0.5 * L.z) r.z += L.z;
+
     return r;
 }
 
@@ -104,6 +112,7 @@ static inline Vec3D v3_in_box(Vec3D r, Vec3D L)
     r.x -= L.x * floor(r.x / L.x);
     r.y -= L.y * floor(r.y / L.y);
     r.z -= L.z * floor(r.z / L.z);
+
     return r;
 }
 
@@ -117,7 +126,9 @@ static inline Vec3D v3_in_box(Vec3D r, Vec3D L)
  */
 static inline int pair_index(int i, int j)
 {
-    return (i>j? (i*(i+1))/2 + j: (j*(j+1))/2 + i);
+    return (i > j
+        ? (i * (i + 1)) / 2 + j
+        : (j * (j + 1)) / 2 + i);
 }
 
 /**
@@ -133,6 +144,7 @@ struct Parameters
     int is_NVT;              //!< If equal 1 NVT ensemble (thermostat on), if equal 0 NVE ensemble
     double dt;               //!< integration time step
     struct Vec3D L;          //!< Box size in the three directions
+
     /**
      * Scaling of the non-bonded interaction between atoms that are one, two or
      * three bonds apart. Zero leaves the pair out of the non-bonded interaction
@@ -146,23 +158,49 @@ struct Parameters
     double factor_12_nb;     //!< Scaling factor for 1-2 (bonded) non-bonded interactions
     double factor_13_nb;     //!< Scaling factor for 1-3 non-bonded interactions
     double factor_14_nb;     //!< Scaling factor for 1-4 non-bonded interactions
+
     double kT;               //!< Thermal energy
-    double tau_T;
+    double tau_T;            //!< Thermostat relaxation time
+
     double r_cut;            //!< Cut-off distance for LJ interaction
     double r_shell;          //!< Shell thickness for neighbor list
+
     size_t num_dt_pdb;       //!< Number of time steps between pdb saves
     double rescale_output;   //!< Rescale factor for output positions, used to bring lengths to the magnitude a visualization program expects.
+
     char filename_pdb[1024]; //!< filename (without extension) for pdb file
     char filename_xyz[1024]; //!< filename (without extension) for xyz file
+
     char load_restart;       //!< if equal 1 restart file is loaded
     size_t num_dt_restart;   //!< Number of time steps between saves of restart file
+
     char restart_in_filename[1024];  //!< filename for loaded restart file
     char restart_out_filename[1024]; //!< filename for saved restart file
+
     /// \todo Make the mass and the LJ parameters depend on the particle type, and
     /// add the parameters of the bond, angle and dihedral potentials and of the thermostat
+
     double mass[NUM_TYPES];             //!< Mass of a particle
     double epsilon[NUM_TYPES];          //!< LJ interaction strength
     double sigma[NUM_TYPES];            //!< LJ particle diameter
+
+    // Bond potential:
+    // U_bond = 1/2 * k_b * (r - r_0)^2
+    double r_0;                         //!< Equilibrium bond length
+    double k_b;                         //!< Harmonic bond force constant
+
+    // Angle potential:
+    // U_angle = 1/2 * k_theta * (theta - theta_0)^2
+    double theta_0;                     //!< Equilibrium bond angle in radians
+    double k_theta;                     //!< Harmonic angle force constant
+
+    // Ryckaert-Bellemans torsion:
+    // U(phi) = c_0 + c_1*cos(phi)
+    //        + c_2*cos(phi)^2 + c_3*cos(phi)^3
+    double c_0;                         //!< Torsion coefficient c0
+    double c_1;                         //!< Torsion coefficient c1
+    double c_2;                         //!< Torsion coefficient c2
+    double c_3;                         //!< Torsion coefficient c3
 };
 
 
@@ -192,7 +230,7 @@ struct Index3D
  */
 struct Bond
 {
-    size_t i,j;
+    size_t i, j;
 };
 
 /**
@@ -201,7 +239,7 @@ struct Bond
  */
 struct Angle
 {
-    size_t i,j,k;
+    size_t i, j, k;
 };
 
 /**
@@ -210,7 +248,7 @@ struct Angle
  */
 struct Dihedral
 {
-    size_t i,j,k,l;
+    size_t i, j, k, l;
 };
 
 /**
@@ -234,16 +272,20 @@ struct Vectors
 {
     size_t size;                //!< allocated length of the particle arrays (can be > num_part)
     size_t num_bonds;           //!< number of bonds
-    size_t num_angles;          //!< number of angles 
+    size_t num_angles;          //!< number of angles
     size_t num_dihedrals;       //!< number of dihedrals
-    int    *type;               //!< particle types (index into the per-type parameter arrays)
+
+    int *type;                  //!< particle types (index into the per-type parameter arrays)
+
     struct Vec3D *r;            //!< positions
     struct Vec3D *dr;           //!< displacements of the last time step
     struct Vec3D *v;            //!< velocities
     struct Vec3D *f;            //!< forces
+
     struct Bond *bonds;         //!< bonds
     struct Angle *angles;       //!< angles
     struct Dihedral *dihedrals; //!< dihedrals
+
     double press_kin;           //!< kinetic (ideal-gas) contribution to the pressure, set in @ref update_velocities_half_dt
     double press_vir_nb;        //!< non-bonded virial contribution to the pressure, set in @ref calculate_forces
     double press_vir_bnd;       //!< bonded (bond + angle + dihedral) virial contribution to the pressure, set in @ref calculate_forces
@@ -290,9 +332,10 @@ struct Nbrlist
     size_t num_nbrs, num_nbrs_max; //!< number of pairs in the list, and the number allocated for
     struct Pair *nbr;              //!< the pairs of the neighbor list
     struct DeltaR *dr;             //!< per-particle displacement since the list was last built; drives the rebuild decision
-    size_t *head12, *pairs12;          //!< 1-2 (bonded) partners of each particle
-    size_t *head13, *pairs13;          //!< 1-3 partners (two bonds apart) of each particle
-    size_t *head14, *pairs14;          //!< 1-4 partners (three bonds apart) of each particle
+
+    size_t *head12, *pairs12;      //!< 1-2 (bonded) partners of each particle
+    size_t *head13, *pairs13;      //!< 1-3 partners (two bonds apart) of each particle
+    size_t *head14, *pairs14;      //!< 1-4 partners (three bonds apart) of each particle
 };
 
 #endif /* TYPES_MD_H_ */

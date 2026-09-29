@@ -29,10 +29,42 @@ void initialise_types(struct Parameters *p_parameters, struct Vectors *p_vectors
 // This will be important for handling bonded interactions in the simulation.
 void initialise_bond_connectivity(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {
-    size_t num_bonds = 0;  // Currently, no bonds are set up.
-    struct Bond *bonds = (struct Bond *)malloc(num_bonds * sizeof(struct Bond));
+    // Each n-pentane molecule contains five united-atom sites:
+    //
+    // CH3 - CH2 - CH2 - CH2 - CH3
+    //
+    // Therefore each molecule contains four covalent bonds.
+    size_t num_molecules = p_parameters->num_part / 5;
+    size_t num_bonds = 4 * num_molecules;
+
+    struct Bond *bonds =
+        (struct Bond *)malloc(num_bonds * sizeof(struct Bond));
 
     /// \todo Specify bonds between particles, i.e., bonds[i].i and bonds[i].j for bonded particle pairs.
+
+    size_t bond_index = 0;
+
+    // Construct the four consecutive bonds of every pentane molecule.
+    //
+    // For molecule 0:
+    // 0-1, 1-2, 2-3, 3-4
+    //
+    // For molecule 1:
+    // 5-6, 6-7, 7-8, 8-9
+    //
+    // and so on.
+    for (size_t molecule = 0; molecule < num_molecules; ++molecule)
+    {
+        size_t first = 5 * molecule;
+
+        for (size_t site = 0; site < 4; ++site)
+        {
+            bonds[bond_index].i = first + site;
+            bonds[bond_index].j = first + site + 1;
+
+            ++bond_index;
+        }
+    }
 
     p_vectors->num_bonds = num_bonds;
     p_vectors->bonds = bonds;
@@ -97,7 +129,8 @@ void initialise_structure(struct Parameters *p_parameters, struct Vectors *p_vec
         num_angles += (num_pairs * (num_pairs - 1)) / 2;
     }
 
-    struct Angle *angles = (struct Angle *)malloc(num_angles * sizeof(struct Angle));
+    struct Angle *angles =
+        (struct Angle *)malloc(num_angles * sizeof(struct Angle));
 
     size_t m = 0;
 
@@ -282,14 +315,133 @@ void initialise(
 // Particles are placed in a grid with spacing based on the number of particles and the box dimensions.
 void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {
+    /// \todo Change the initialization of the positions such that the particles
+    /// form n-pentane molecules, with the correct bond lengths and bond angles
+
+    // -------------------------------------------------------------------------
+    // Special single-molecule initialization used for the B5 bonded-force test
+    // -------------------------------------------------------------------------
+    //
+    // B5 requires one n-pentane molecule. For num_part = 5, construct one
+    // CH3-CH2-CH2-CH2-CH3 chain with:
+    //
+    // bond length = r_0
+    // bond angle  = theta_0
+    // both torsions initially trans
+    //
+    // The molecule is placed near the centre of the simulation box.
+    //
+    // It will NOT be force-tested directly from this equilibrium structure.
+    // B5 requires us to thermalise it first and then perform the finite-
+    // difference tests from the resulting non-equilibrium configuration.
+    if (p_parameters->num_part == 5)
+    {
+        double bond = p_parameters->r_0;
+
+        // If the internal bond angle is theta_0, the forward zig-zag bond
+        // direction makes an angle alpha = pi - theta_0 relative to +x.
+        double alpha = M_PI - p_parameters->theta_0;
+
+        double dx = bond * cos(alpha);
+        double dy = bond * sin(alpha);
+
+        // Build a planar all-trans zig-zag chain.
+        //
+        // Atom 0 ---- Atom 1
+        //                  \
+        //                   Atom 2 ---- Atom 3
+        //                                      \
+        //                                       Atom 4
+        //
+        // Successive bond vectors are:
+        //
+        // b1 = (bond, 0, 0)
+        // b2 = (dx, dy, 0)
+        // b3 = (bond, 0, 0)
+        // b4 = (dx, dy, 0)
+        //
+        // This gives bond angles theta_0 and cos(phi) = -1 for both
+        // dihedrals, i.e. the trans configuration.
+
+        struct Vec3D local[5];
+
+        local[0] = v3(0.0, 0.0, 0.0);
+
+        local[1] =
+            v3(
+                bond,
+                0.0,
+                0.0
+            );
+
+        local[2] =
+            v3(
+                bond + dx,
+                dy,
+                0.0
+            );
+
+        local[3] =
+            v3(
+                2.0 * bond + dx,
+                dy,
+                0.0
+            );
+
+        local[4] =
+            v3(
+                2.0 * bond + 2.0 * dx,
+                2.0 * dy,
+                0.0
+            );
+
+
+        // Determine the centre of the molecule.
+        struct Vec3D molecular_centre = {0.0, 0.0, 0.0};
+
+        for (size_t i = 0; i < 5; ++i)
+            molecular_centre =
+                v3_add(molecular_centre, local[i]);
+
+        molecular_centre =
+            v3_scl(1.0 / 5.0, molecular_centre);
+
+
+        // Centre of the simulation box.
+        struct Vec3D box_centre =
+            v3(
+                0.5 * p_parameters->L.x,
+                0.5 * p_parameters->L.y,
+                0.5 * p_parameters->L.z
+            );
+
+
+        // Translate the complete molecule into the centre of the box.
+        for (size_t i = 0; i < 5; ++i)
+        {
+            p_vectors->r[i] =
+                v3_add(
+                    v3_sub(local[i], molecular_centre),
+                    box_centre
+                );
+        }
+
+        return;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Original multi-particle lattice initialization
+    // -------------------------------------------------------------------------
+    //
+    // This is retained for now because B5 only concerns one molecule.
+    // Packing many pentane molecules is addressed separately in task B6.
+
     struct Vec3D dr;  // Displacement vector for positioning particles
     struct Index3D n; // Number of grid cells along each axis
     double dl;        // Lattice spacing
     size_t ipart = 0; // Particle index; size_t, like the count it is compared
                       // against and the arrays it indexes
-
-    /// \todo Change the initialization of the positions such that the particles
-    /// form n-pentane molecules, with the correct bond lengths and bond angles
 
     // Calculate lattice spacing based on particle number and box dimensions
     dl = pow(
