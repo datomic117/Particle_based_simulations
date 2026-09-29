@@ -25,7 +25,7 @@ double forces_test(ForceKernel kernel, int i,
     Vec3D r_saved = r[i];
     Vec3D *dr_i = &(p_vectors->dr[i]);
 
-    const double delta = p_parameters->force_test_delta;
+    const double delta = 1e-6;
     Vec3D f_fd = (Vec3D){0.0, 0.0, 0.0}; // initialize all components
     double e_scale = 0.0; // magnitude of the energies that are differenced
 
@@ -128,7 +128,7 @@ double virial_test(ForceKernel kernel,
     memcpy(r_saved, r, num_part * sizeof(Vec3D));
     Vec3D L_saved = p_parameters->L;
 
-    const double h = p_parameters->virial_test_delta;
+    const double h = 1e-6;
     double U[2];
     for (int sgn = 0; sgn < 2; ++sgn)
     {

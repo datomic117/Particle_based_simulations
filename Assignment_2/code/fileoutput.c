@@ -57,7 +57,7 @@ void record_trajectories_xyz(int reset, struct Parameters *p_parameters, struct 
     fp_traj = fopen(filename, "a");
   }
 
-  fprintf(fp_traj, "%zu\n", p_parameters->num_part);
+  fprintf(fp_traj, "%lu\n", p_parameters->num_part);
   fprintf(fp_traj, "time = %f\n", time);
   struct Vec3D *r = p_vectors->r;
   for (size_t i = 0; i < p_parameters->num_part; i++)
@@ -85,8 +85,8 @@ void save_restart(struct Parameters *p_parameters, struct Vectors *p_vectors)
   fclose(p_file);
 }
 
-// Load into the arrays already allocated by main. The saved particle count
-// must match the configured system, including its box and neighbour storage.
+// Load a restart file written by save_restart. Allocates the particle arrays
+// for the number of particles found in the file and overwrites num_part.
 void load_restart(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {
   FILE* p_file = fopen( p_parameters->restart_in_filename, "rb" );
@@ -98,20 +98,12 @@ void load_restart(struct Parameters *p_parameters, struct Vectors *p_vectors)
     exit(1);
   }
   size_t num_part;
-  if (fread(&num_part, sizeof(size_t), 1, p_file) != 1 || num_part != p_parameters->num_part)
-  {
-    fprintf(stderr, "Invalid restart particle count or incompatible configuration.\n");
-    fclose(p_file);
-    exit(EXIT_FAILURE);
-  }
+  fread(&num_part, sizeof(size_t), 1, p_file);
   size_t sz = num_part*sizeof(struct Vec3D);
-  if (fread(p_vectors->r, sz, 1, p_file) != 1 ||
-      fread(p_vectors->v, sz, 1, p_file) != 1 ||
-      fread(p_vectors->f, sz, 1, p_file) != 1)
-  {
-    fprintf(stderr, "Truncated restart file.\n");
-    fclose(p_file);
-    exit(EXIT_FAILURE);
-  }
+  alloc_vectors(p_vectors,num_part);
+  p_parameters->num_part = num_part;
+  fread(p_vectors->r, sz, 1, p_file);
+  fread(p_vectors->v, sz, 1, p_file);
+  fread(p_vectors->f, sz, 1, p_file);
   fclose(p_file);
 }

@@ -35,39 +35,45 @@ void update_positions(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist
 // This function updates particle velocities by half a time step using the current forces.
 // The updated velocities are used in the velocity-Verlet integration scheme.
 // The function also calculates and returns the kinetic energy of the system.
-double update_velocities_half_dt(struct Parameters *p_parameters,
-                                 struct Nbrlist *p_nbrlist,
-                                 struct Vectors *p_vectors)
+double update_velocities_half_dt(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist, struct Vectors *p_vectors)
 {
-    (void)p_nbrlist;
+    double Ekin = 0.0;  // Initialize kinetic energy
+    (void)p_nbrlist;    // the neighbor list is not needed here
+    double dt_hlf = p_parameters->dt * 0.5;  // Half time step
+    struct Vec3D *v = p_vectors->v;  // Particle velocities
+    struct Vec3D *f = p_vectors->f;  // Forces acting on particles
 
-    double Ekin = 0.0;
-    const double dt_half = 0.5 * p_parameters->dt;
+    /// \todo Make sure type-specific particle masses are used
 
-    struct Vec3D *v = p_vectors->v;
-    struct Vec3D *f = p_vectors->f;
-
+    // Loop over all particles and update their velocities
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
-        const int type = p_vectors->type[i];
-        const double mass = p_parameters->mass[type];
+        // Determine the particle type:
+        // type 0 = CH3
+        // type 1 = CH2
+        int type = p_vectors->type[i];
 
-        // Advance velocity by half a timestep using this site's mass.
-        v[i] = v3_add(v[i], v3_scl(dt_half / mass, f[i]));
+        // Use the mass corresponding to this particle type
+        double m = p_parameters->mass[type];
 
-        // Accumulate kinetic energy using the same mass.
-        Ekin += 0.5 * mass * v3_dot(v[i], v[i]);
+        // Velocity-Verlet half-step:
+        // v(t + dt/2) = v(t) + F(t)/m * dt/2
+        double factor = dt_hlf / m;
+
+        v[i] = v3_add(v[i], v3_scl(factor, f[i]));
+
+        // Kinetic energy of particle i:
+        // Ekin_i = 1/2 m_i v_i^2
+        Ekin += (0.5 * m) * v3_dot(v[i], v[i]);
     }
 
-    const double volume =
-        p_parameters->L.x *
-        p_parameters->L.y *
-        p_parameters->L.z;
+    // Kinetic (ideal-gas) contribution to the pressure: sum(m v^2)/(3V) = 2 Ekin/(3V)
+    double V = p_parameters->L.x * p_parameters->L.y * p_parameters->L.z;
+    p_vectors->press_kin = 2.0 * Ekin / (3.0 * V);
 
-    p_vectors->press_kin = 2.0 * Ekin / (3.0 * volume);
-
-    return Ekin;
+    return Ekin;  // Return the system's kinetic energy
 }
+
 // This function applies periodic boundary conditions to ensure particles stay inside the simulation box.
 // If a particle moves beyond the box, it is wrapped around to the opposite side.
 // Keeping all positions inside [0,L) is what allows the cheap minimum image
@@ -92,46 +98,27 @@ void boundary_conditions(struct Parameters *p_parameters, struct Vectors *p_vect
     }
 }
 
+
 // This function applies a thermostat to maintain the system's temperature.
-void thermostat(struct Parameters *p_parameters,
-                struct Vectors *p_vectors,
-                double Ekin)
+void thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, double Ekin)
 {
-    const double dof =
-        3.0 * (double)p_parameters->num_part - 3.0;
+    /// \todo Change velocities by thermostatting
 
-    const double temperature = 2.0 * Ekin / dof;
+    const double dof = 3.0 * (double)p_parameters->num_part - 3.0;
 
-    if (!isfinite(temperature) || temperature <= 0.0 ||
-        p_parameters->tau_T <= 0.0)
-    {
-        fprintf(stderr,
-                "Error: invalid thermostat temperature or coupling time.\n");
-        exit(EXIT_FAILURE);
-    }
+    // Current temperature from kinetic energy
+    double T = 2.0 * Ekin / dof;
 
-    const double lambda_sq =
-        1.0 + (p_parameters->dt / p_parameters->tau_T)
-        * (p_parameters->kT / temperature - 1.0);
+    // Berendsen velocity scaling factor
+    double lambda = sqrt(
+        1.0 +
+        (p_parameters->dt / p_parameters->tau_T) *
+        (p_parameters->kT / T - 1.0)
+    );
 
-    if (!isfinite(lambda_sq) || lambda_sq <= 0.0)
-    {
-        fprintf(stderr, "Error: invalid thermostat scaling factor.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    const double lambda = sqrt(lambda_sq);
-
+    // Scale all velocities
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
         p_vectors->v[i] = v3_scl(lambda, p_vectors->v[i]);
     }
-
-    const double volume =
-        p_parameters->L.x *
-        p_parameters->L.y *
-        p_parameters->L.z;
-
-    p_vectors->press_kin =
-        2.0 * Ekin * lambda_sq / (3.0 * volume);
 }

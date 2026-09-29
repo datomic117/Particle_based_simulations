@@ -5,162 +5,122 @@
 #include "constants.h"
 #include "structs.h"
 
-// All B3 run configuration lives here. Select a protocol when compiling:
-// 0 = next NVT equilibration block; 1 = force check; 2/3 = NVE at 1/0.5 fs.
-// B3_EQ_STAGE selects the saved NVT block used by protocols 1-3.
-#ifndef B3_PROTOCOL
-#define B3_PROTOCOL 0
-#endif
-#ifndef B3_EQ_STAGE
-#define B3_EQ_STAGE 1
-#endif
-#ifndef B3_DURATION_PS
-#define B3_DURATION_PS 100
-#endif
-#ifndef B3_FD_DELTA
-#define B3_FD_DELTA 1e-6
-#endif
-#ifndef B3_VIRIAL_H
-#define B3_VIRIAL_H 1e-6
-#endif
+// Set the parameters of this simulation. This is the only place run settings
+// live: there are no input files, so changing a run means editing the values
+// below and recompiling.
 
 void set_parameters(struct Parameters *p_parameters)
 {
-    // Target temperature: 293 K.
+    /// \todo Replace these demonstration values by the parameters of the n-pentane
+    /// force field: type-dependent masses and LJ parameters, the bond, angle and
+    /// dihedral parameters, and the thermostat relaxation time
+
+    // The values below are demonstration values in reduced Lennard-Jones units
+
+    p_parameters->mass[0] = 15.035;   // CH3
+    p_parameters->mass[1] = 14.027;   // CH2
+
+    p_parameters->epsilon[0] = 98.0;  // CH3, in kB K
+    p_parameters->epsilon[1] = 46.0;  // CH2, in kB K
+
+    p_parameters->sigma[0] = 3.75;    // CH3, Angstrom
+    p_parameters->sigma[1] = 3.95;    // CH2, Angstrom
+
+    // Target thermal energy. Since energy is expressed in kB K,
+    // the numerical value equals the temperature in Kelvin.
     p_parameters->kT = 293.0;
 
-    // Thermostat coupling time: 0.1 ps in internal units.
-    p_parameters->tau_T = 0.0911836;
+    // Berendsen thermostat relaxation time
+    p_parameters->tau_T = 0.009118;
 
-    // Masses in atomic mass units.
-    p_parameters->mass[TYPE_CH3] = 15.035;
-    p_parameters->mass[TYPE_CH2] = 14.027;
 
-    // Lennard-Jones energy parameters: epsilon / k_B in Kelvin.
-    p_parameters->epsilon[TYPE_CH3] = 98.0;
-    p_parameters->epsilon[TYPE_CH2] = 46.0;
+    // The parameters below control core functionalities of the code, but many values will need to be changed
+    //
+    // Run modes (the defaults below are a production NVT run):
+    //  - production:      force_test = 0, num_dt_steps > 0, is_NVT = 1
+    //  - force check:     force_test > 0 (finite-difference test of the forces on every
+    //                     force_test-th particle and of the virial, after which the
+    //                     program exits; num_dt_steps is ignored)
+    //  - energy check:    is_NVT = 0 (NVE: thermostat off, so Etot must be conserved)
 
-    // Lennard-Jones length parameters in angstroms.
-    p_parameters->sigma[TYPE_CH3] = 3.75;
-    p_parameters->sigma[TYPE_CH2] = 3.95;
+    p_parameters->num_part = 2000;              // number of particles
+    p_parameters->force_test = 0;               // if > 0, test the forces on every force_test-th particle and exit
 
-    // Particle count must match the saved configuration.
-    p_parameters->num_part = 2000;
+    // NVT is used here because we want to compare both particle
+    // temperatures with the target temperature of 293 K.
+    p_parameters->is_NVT = 1;                   // if equal 1 NVT ensemble, if equal 0 NVE ensemble
 
-    // Continue the simulation with the thermostat enabled.
-    p_parameters->force_test = 0;
-    p_parameters->load_restart = 1;
-    p_parameters->is_NVT = 1;
+    // Output every 20 steps so that enough temperature
+    // samples are available without producing a large file.
+    p_parameters->num_dt_output = 20;            // number of time steps between saves of output file
 
-    // 50,000 steps at 1 fs = 50 ps.
-    p_parameters->num_dt_steps = 50000;
-    p_parameters->num_dt_output = 100;
 
-    // Exclusions used once molecular connectivity is implemented.
-    p_parameters->factor_12_nb = 0.0;
-    p_parameters->factor_13_nb = 0.0;
-    p_parameters->factor_14_nb = 0.0;
+    // Scaling of the non-bonded interaction between nearby atoms of one chain:
+    // 0 leaves the pair out, 1 treats it like any other pair and skips the test.
 
-    // Timestep: 1 fs in internal units.
-    p_parameters->dt = 0.000911836;
+    p_parameters->factor_12_nb = 0.0;           // 1-2 connected atoms excluded from non-bonded interactions
+    p_parameters->factor_13_nb = 0.0;           // 1-3 connected atoms excluded from non-bonded interactions
+    p_parameters->factor_14_nb = 0.0;           // 1-4 connected atoms excluded, as TraPPE prescribes
 
-    // Box size at a mass density of 626 kg/m^3.
-    const double molecule_mass =
-        2.0 * p_parameters->mass[TYPE_CH3]
-        + 3.0 * p_parameters->mass[TYPE_CH2];
 
-    const double total_mass_kg =
-        (p_parameters->num_part / 5)
-        * molecule_mass * 1.66053906660e-27;
+    /// \todo Set the time step, box size and cut-off distance to values appropriate
+    /// for n-pentane at a mass density of 626 kg/m3
 
-    const double box_length_angstrom =
-        cbrt(total_mass_kg / 626.0) / 1.0e-10;
+    // Only a short continuation is needed for the
+    // type-dependent temperature check.
+    p_parameters->num_dt_steps = 2000;          // number of time steps
 
-    p_parameters->L = (struct Vec3D){
-        box_length_angstrom,
-        box_length_angstrom,
-        box_length_angstrom
-    };
+    // 1 fs expressed in the internal simulation time unit
+    p_parameters->dt = 0.0009118;
 
-    // Interaction cutoff and neighbour-list buffer in angstroms.
-    p_parameters->r_cut = 14.0;
-    p_parameters->r_shell = 2.0;
+    // 2000 united-atom sites = 400 pentane molecules.
+    // At rho = 626 kg/m3 this gives L = 42.461 Angstrom.
+    p_parameters->L =
+        (struct Vec3D){42.4612, 42.4612, 42.4612};
 
-    // Trajectory output.
-    p_parameters->num_dt_pdb = 500;
-    p_parameters->rescale_output = 1.0;
+    p_parameters->r_cut = 14.0;                 // cut-off distance of the non-bonded interaction
+    p_parameters->r_shell = 0.4;                // shell thickness for neighbor list
 
-    strcpy(p_parameters->filename_pdb, "../data/b3_equil_long");
-    strcpy(p_parameters->filename_xyz, "../data/b3_equil_long");
+    p_parameters->num_dt_pdb = 500;             // number of time steps in between pdb outputs
 
-    // Continue from the completed extra equilibration run.
+    strcpy(
+        p_parameters->filename_pdb,
+        "trajectories"
+    );                                           // filename (without extension) for pdb file
+
+    p_parameters->rescale_output = 1;            // factor used to rescale output lengthscale
+                                                 // (Most visualisation programs identify bonds
+                                                 // based on distances of order 1)
+
+
+    // Start from the equilibrated configuration obtained earlier.
+    p_parameters->load_restart = 1;              // if equal 1 restart file is loaded
+
     strcpy(
         p_parameters->restart_in_filename,
-        "../data/b3_equil_extra_restart.dat"
-    );
+        "restart.dat"
+    );                                           // filename for loaded restart file
 
-    // Save to a separate file to preserve the starting configuration.
-    p_parameters->num_dt_restart = 1000;
 
+    p_parameters->num_dt_restart = 2000;         // number of time steps between saves
+
+    // Use a different output restart name so that the original
+    // equilibrated restart.dat is not overwritten.
     strcpy(
         p_parameters->restart_out_filename,
-        "../data/b3_equil_long_restart.dat"
-    );
+        "restart_b3_temperature.dat"
+    );                                           // filename for saved restart file
 
-    // Reproducible B3 protocols; the settings above define the common model.
-    const double time_unit_ps = sqrt(1.66053906660e-27 * 1e-20 / 1.380649e-23) / 1e-12;
-    const double dt_ps = B3_PROTOCOL == 3 ? 0.0005 : 0.001;
-    p_parameters->dt = dt_ps / time_unit_ps;
-    p_parameters->tau_T = 0.1 / time_unit_ps;
-    p_parameters->num_dt_steps = (size_t)llround(B3_DURATION_PS / dt_ps);
-    p_parameters->num_dt_output = B3_PROTOCOL >= 2 ? (size_t)llround(0.01 / dt_ps) : 100;
-    p_parameters->num_dt_pdb = p_parameters->num_dt_steps; // initial and final only
-    p_parameters->num_dt_restart = (size_t)llround(10.0 / dt_ps);
-    p_parameters->is_NVT = B3_PROTOCOL == 0;
-    p_parameters->force_test = B3_PROTOCOL == 1 ? 1 : 0;
-    p_parameters->force_test_delta = B3_FD_DELTA;
-    p_parameters->virial_test_delta = B3_VIRIAL_H;
 
-    char run_name[128];
-    if (B3_PROTOCOL == 0)
-    {
-        snprintf(run_name, sizeof(run_name), "b3_final_equil_%02d", B3_EQ_STAGE);
-        if (B3_EQ_STAGE == 1)
-            strcpy(p_parameters->restart_in_filename, "../data/b3_equil_long_restart.dat");
-        else
-            snprintf(p_parameters->restart_in_filename, sizeof(p_parameters->restart_in_filename),
-                     "../data/b3_final_equil_%02d_restart.dat", B3_EQ_STAGE - 1);
-    }
-    else
-    {
-        snprintf(p_parameters->restart_in_filename, sizeof(p_parameters->restart_in_filename),
-                 "../data/b3_final_equil_%02d_restart.dat", B3_EQ_STAGE);
-        if (B3_PROTOCOL == 1)
-            snprintf(run_name, sizeof(run_name), "b3_final_fd_%g", (double)B3_FD_DELTA);
-        else
-            snprintf(run_name, sizeof(run_name), "b3_final_nve_%s", B3_PROTOCOL == 2 ? "1fs" : "05fs");
-    }
-    snprintf(p_parameters->filename_pdb, sizeof(p_parameters->filename_pdb), "../data/%s", run_name);
-    snprintf(p_parameters->filename_xyz, sizeof(p_parameters->filename_xyz), "../data/%s", run_name);
-    snprintf(p_parameters->restart_out_filename, sizeof(p_parameters->restart_out_filename),
-             "../data/%s_restart.dat", run_name);
-    if (B3_PROTOCOL < 0 || B3_PROTOCOL > 3 || B3_EQ_STAGE < 1 || B3_DURATION_PS <= 0 || B3_FD_DELTA <= 0)
-    {
-        fprintf(stderr, "Invalid B3 protocol settings.\n");
-        exit(EXIT_FAILURE);
-    }
-    fprintf(stderr, "B3 protocol=%d stage=%d N=%zu L=%.15g dt=%.15g steps=%zu NVT=%d\n"
-                    "restart=%s; force_delta=%.15g; virial_h=%.15g\n",
-            B3_PROTOCOL, B3_EQ_STAGE, p_parameters->num_part, p_parameters->L.x,
-            p_parameters->dt, p_parameters->num_dt_steps, p_parameters->is_NVT,
-            p_parameters->restart_in_filename, p_parameters->force_test_delta, p_parameters->virial_test_delta);
+    // The minimum image convention requires r_cut <= L/2: beyond that a particle
+    // would interact with two images of the same neighbor.
 
-    // Minimum-image requirement.
-    if (p_parameters->r_cut > p_parameters->L.x / 2.0 ||
-        p_parameters->r_cut > p_parameters->L.y / 2.0 ||
-        p_parameters->r_cut > p_parameters->L.z / 2.0)
-    {
-        fprintf(stderr, "Error: cutoff exceeds half the box length.\n");
-        exit(EXIT_FAILURE);
-    }
+    if (p_parameters->r_cut > p_parameters->L.x / 2.0)
+        fprintf(stderr, "Warning! r_cut > Lx/2");
+
+    if (p_parameters->r_cut > p_parameters->L.y / 2.0)
+        fprintf(stderr, "Warning! r_cut > Ly/2");
+
+    if (p_parameters->r_cut > p_parameters->L.z / 2.0)
+        fprintf(stderr, "Warning! r_cut > Lz/2");
 }

@@ -90,8 +90,8 @@ int main(void)
     }
     else 
     {   
-    /// \todo Initialize particle types (CH3 and CH2) in vectors.type array
-    /// \todo Implement the bonds between the UA of n-pentane in initialise_bonds (initialise.c)
+        /// \todo Initialize particle types (CH3 and CH2) in vectors.type array
+        /// \todo Implement the bonds between the UA of n-pentane in initialise_bonds (initialise.c)
         initialise(&parameters, &vectors, &nbrlist, &step, &time); 
         boundary_conditions(&parameters, &vectors);
     }
@@ -130,20 +130,24 @@ int main(void)
     // and pass it here in place of calculate_forces.
     if (parameters.force_test > 0)
     {
-        printf("# U=%.17g delta=%.17g h=%.17g N=%zu restart=%s\n",
-               Epot, parameters.force_test_delta, parameters.virial_test_delta,
-               parameters.num_part, parameters.restart_in_filename);
-        for(size_t i=0; i<parameters.num_part; i+=(size_t)parameters.force_test)
+        for(size_t i = 0; i < parameters.num_part; i += (size_t)parameters.force_test)
             forces_test(calculate_forces, (int)i, &parameters, &nbrlist, &vectors);
+
         virial_test(calculate_forces, &parameters, &nbrlist, &vectors);
+
         free_memory(&vectors, &nbrlist);
         return 0;
     }
 
 
+    // CSV output header.
+    // The last two columns are the temperatures calculated separately
+    // for the CH3 and CH2 particle populations.
+    printf(
+        "step,time,Epot,Ekin,Etot,T,T_CH3_K,T_CH2_K\n"
+    );
 
-    printf("step,time_internal,Epot_internal,Ekin_internal,Etot_internal,T_internal,T_CH3_K,T_CH2_K\n");
-    
+
     // Main MD loop using velocity-Verlet integration
     while (step < parameters.num_dt_steps) 
     { 
@@ -152,94 +156,183 @@ int main(void)
 
         // Update velocities (half-step)
         /// \todo Implement the use of type-dependent masses
-        Ekin = update_velocities_half_dt(&parameters, &nbrlist, &vectors); 
+        Ekin = update_velocities_half_dt(
+            &parameters,
+            &nbrlist,
+            &vectors
+        ); 
 
         /// \todo Implement and apply the Berendsen thermostat to maintain temperature (dynamics.c)
- 
-
-
 
 
         // Update positions
-        update_positions(&parameters, &nbrlist, &vectors); 
+        update_positions(
+            &parameters,
+            &nbrlist,
+            &vectors
+        ); 
 
         // Apply boundary conditions
-        boundary_conditions(&parameters, &vectors); 
+        boundary_conditions(
+            &parameters,
+            &vectors
+        ); 
 
         // Rebuild neighbor list if needed
-        update_nbrlist(&parameters, &vectors, &nbrlist); 
+        update_nbrlist(
+            &parameters,
+            &vectors,
+            &nbrlist
+        ); 
 
         // Calculate forces for the current configuration (bonded forces if implemented)
-        Epot = calculate_forces(&parameters, &nbrlist, &vectors); 
+        Epot = calculate_forces(
+            &parameters,
+            &nbrlist,
+            &vectors
+        ); 
 
         // Final velocity update (half-step)
-        Ekin = update_velocities_half_dt(&parameters, &nbrlist, &vectors); 
+        Ekin = update_velocities_half_dt(
+            &parameters,
+            &nbrlist,
+            &vectors
+        ); 
+
 
         // Apply the thermostat after the complete velocity-Verlet step.
         if (parameters.is_NVT == 1)
         {
-            thermostat(&parameters, &vectors, Ekin);
+            thermostat(
+                &parameters,
+                &vectors,
+                Ekin
+            );
 
-            // Recalculate kinetic energy after scaling the velocities.
+            // Recalculate kinetic energy after scaling
+            // the velocities with the thermostat.
             Ekin = 0.0;
-
-            for (size_t i = 0; i < parameters.num_part; i++)
-            {
-                const double mass = parameters.mass[vectors.type[i]];
-
-                Ekin += 0.5 * mass
-                      * v3_dot(vectors.v[i], vectors.v[i]);
-            }
-        }
-
-        // Output system state every 'num_dt_pdb' steps
-        if (step % parameters.num_dt_pdb == 0) 
-            record_trajectories_pdb(0, &parameters, &vectors, time); 
-
-        // Save restart file every 'num_dt_restart' steps
-        if (step % parameters.num_dt_restart == 0) 
-            save_restart(&parameters, &vectors); 
-
-        /// \todo Implement on-the-fly analysis of velocity distribution, torsion angle distribution and mean-square displacement
-        // Print to the screen to monitor the progress of the simulation
-       
-        if (step % parameters.num_dt_output == 0)
-        {
-            const double dof =
-                3.0 * (double)parameters.num_part - 3.0;
-
-            const double temperature = 2.0 * Ekin / dof;
-
-            double sum_mv2[NUM_TYPES] = {0.0};
-            size_t count[NUM_TYPES] = {0};
 
             for (size_t i = 0; i < parameters.num_part; i++)
             {
                 const int type = vectors.type[i];
 
-                sum_mv2[type] += parameters.mass[type]
-                              * v3_dot(vectors.v[i], vectors.v[i]);
+                const double mass =
+                    parameters.mass[type];
+
+                Ekin +=
+                    0.5
+                    * mass
+                    * v3_dot(
+                        vectors.v[i],
+                        vectors.v[i]
+                    );
+            }
+        }
+
+
+        // Output system state every 'num_dt_pdb' steps
+        if (step % parameters.num_dt_pdb == 0) 
+            record_trajectories_pdb(
+                0,
+                &parameters,
+                &vectors,
+                time
+            ); 
+
+
+        // Save restart file every 'num_dt_restart' steps
+        if (step % parameters.num_dt_restart == 0) 
+            save_restart(
+                &parameters,
+                &vectors
+            ); 
+
+
+        /// \todo Implement on-the-fly analysis of velocity distribution, torsion angle distribution and mean-square displacement
+
+        // Print to the screen to monitor the progress of the simulation
+        if (step % parameters.num_dt_output == 0)
+        {
+            // Total system temperature.
+            // Three degrees of freedom are removed because
+            // the centre-of-mass momentum is zero.
+            const double dof =
+                3.0 * (double)parameters.num_part - 3.0;
+
+            const double temperature =
+                2.0 * Ekin / dof;
+
+
+            // Calculate the temperature implied by each
+            // particle type separately.
+            //
+            // type 0 = CH3
+            // type 1 = CH2
+            double sum_mv2[NUM_TYPES] = {0.0};
+            size_t count[NUM_TYPES] = {0};
+
+
+            for (size_t i = 0; i < parameters.num_part; i++)
+            {
+                const int type =
+                    vectors.type[i];
+
+                const double mass =
+                    parameters.mass[type];
+
+                sum_mv2[type] +=
+                    mass
+                    * v3_dot(
+                        vectors.v[i],
+                        vectors.v[i]
+                    );
 
                 count[type]++;
             }
 
+
+            // For one particle type:
+            //
+            //     T = sum(m v^2) / (3 N)
+            //
+            // Energy is expressed in kB K, so the numerical
+            // result is directly the temperature in Kelvin.
             const double T_CH3 =
-                sum_mv2[TYPE_CH3] / (3.0 * (double)count[TYPE_CH3]);
+                sum_mv2[0]
+                / (3.0 * (double)count[0]);
 
             const double T_CH2 =
-                sum_mv2[TYPE_CH2] / (3.0 * (double)count[TYPE_CH2]);
+                sum_mv2[1]
+                / (3.0 * (double)count[1]);
 
-            printf("%zu,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",
-                   step, time, Epot, Ekin, Epot + Ekin,
-                   temperature, T_CH3, T_CH2);
+
+            printf(
+                "%zu,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",
+                step,
+                time,
+                Epot,
+                Ekin,
+                Epot + Ekin,
+                temperature,
+                T_CH3,
+                T_CH2
+            );
         }
     }
 
+
     // Save final state
-    save_restart(&parameters, &vectors); 
+    save_restart(
+        &parameters,
+        &vectors
+    ); 
 
     // Step 5: Free memory and clean up
-    free_memory(&vectors, &nbrlist); 
+    free_memory(
+        &vectors,
+        &nbrlist
+    ); 
 
     return 0; 
 }
