@@ -5,11 +5,13 @@
 #include "constants.h"
 #include "structs.h"
 
-// B3: check non-bonded forces and virial from the saved configuration.
+// B3: continue equilibration for 50 ps from the latest saved state.
 void set_parameters(struct Parameters *p_parameters)
 {
-    // Thermal energy and thermostat coupling time in internal units.
+    // Target temperature: 293 K.
     p_parameters->kT = 293.0;
+
+    // Thermostat coupling time: 0.1 ps in internal units.
     p_parameters->tau_T = 0.0911836;
 
     // Masses in atomic mass units.
@@ -27,14 +29,13 @@ void set_parameters(struct Parameters *p_parameters)
     // Particle count must match the saved configuration.
     p_parameters->num_part = 2000;
 
-    // Force-test mode: test every particle, then exit.
+    // Continue the simulation with the thermostat enabled.
     p_parameters->force_test = 0;
-p_parameters->load_restart = 1;
-p_parameters->is_NVT = 1;
+    p_parameters->load_restart = 1;
+    p_parameters->is_NVT = 1;
 
-
-    // These simulation-loop settings are unused in force-test mode.
-    p_parameters->num_dt_steps = 20000;
+    // 50,000 steps at 1 fs = 50 ps.
+    p_parameters->num_dt_steps = 50000;
     p_parameters->num_dt_output = 100;
 
     // Exclusions used once molecular connectivity is implemented.
@@ -45,11 +46,10 @@ p_parameters->is_NVT = 1;
     // Timestep: 1 fs in internal units.
     p_parameters->dt = 0.000911836;
 
-
     // Box size at a mass density of 626 kg/m^3.
     const double molecule_mass =
         2.0 * p_parameters->mass[TYPE_CH3]
-      + 3.0 * p_parameters->mass[TYPE_CH2];
+        + 3.0 * p_parameters->mass[TYPE_CH2];
 
     const double total_mass_kg =
         (p_parameters->num_part / 5)
@@ -68,20 +68,26 @@ p_parameters->is_NVT = 1;
     p_parameters->r_cut = 14.0;
     p_parameters->r_shell = 2.0;
 
-    // Separate output names preserve the equilibration files.
+    // Trajectory output.
     p_parameters->num_dt_pdb = 500;
     p_parameters->rescale_output = 1.0;
 
-strcpy(p_parameters->filename_pdb, "../data/b3_temperature");
-strcpy(p_parameters->filename_xyz, "../data/b3_temperature");
-    // Load the saved configuration for the finite-difference tests.
-    p_parameters->load_restart = 1;
+    strcpy(p_parameters->filename_pdb, "../data/b3_equil_long");
+    strcpy(p_parameters->filename_xyz, "../data/b3_equil_long");
 
-  strcpy(p_parameters->restart_in_filename, "../data/b3_nve_05fs_restart.dat");
+    // Continue from the completed extra equilibration run.
+    strcpy(
+        p_parameters->restart_in_filename,
+        "../data/b3_equil_extra_restart.dat"
+    );
 
+    // Save to a separate file to preserve the starting configuration.
     p_parameters->num_dt_restart = 1000;
 
-strcpy(p_parameters->restart_out_filename, "../data/b3_temperature_restart.dat");
+    strcpy(
+        p_parameters->restart_out_filename,
+        "../data/b3_equil_long_restart.dat"
+    );
 
     // Minimum-image requirement.
     if (p_parameters->r_cut > p_parameters->L.x / 2.0 ||
