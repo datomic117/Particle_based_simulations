@@ -20,9 +20,6 @@
 #ifndef B3_FD_DELTA
 #define B3_FD_DELTA 1e-6
 #endif
-#ifndef B3_VIRIAL_H
-#define B3_VIRIAL_H 1e-6
-#endif
 
 void set_parameters(struct Parameters *p_parameters)
 {
@@ -119,7 +116,7 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->is_NVT = B3_PROTOCOL == 0;
     p_parameters->force_test = B3_PROTOCOL == 1 ? 1 : 0;
     p_parameters->force_test_delta = B3_FD_DELTA;
-    p_parameters->virial_test_delta = B3_VIRIAL_H;
+    p_parameters->virial_test_delta = 1e-6;
 
     char run_name[128];
     if (B3_PROTOCOL == 0)

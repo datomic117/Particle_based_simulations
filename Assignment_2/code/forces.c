@@ -162,6 +162,22 @@ double calculate_forces_nb(struct Parameters *p_parameters,
     struct Vec3D *f = p_vectors->f;
     struct Pair *nbr = p_nbrlist->nbr;
 
+    // Only four type combinations exist. Compute their constants once per
+    // force evaluation instead of repeating square roots for every pair.
+    double sigma_sq_pair[NUM_TYPES][NUM_TYPES];
+    double epsilon_pair[NUM_TYPES][NUM_TYPES];
+    double sc6_pair[NUM_TYPES][NUM_TYPES], sc12_pair[NUM_TYPES][NUM_TYPES];
+    for (int a = 0; a < NUM_TYPES; ++a)
+        for (int b = 0; b < NUM_TYPES; ++b)
+        {
+            const double sigma = 0.5 * (p_parameters->sigma[a] + p_parameters->sigma[b]);
+            sigma_sq_pair[a][b] = sigma * sigma;
+            epsilon_pair[a][b] = sqrt(p_parameters->epsilon[a] * p_parameters->epsilon[b]);
+            const double sc2 = sigma_sq_pair[a][b] / r_cutsq;
+            sc6_pair[a][b] = sc2 * sc2 * sc2;
+            sc12_pair[a][b] = sc6_pair[a][b] * sc6_pair[a][b];
+        }
+
     for (size_t pair = 0; pair < p_nbrlist->num_nbrs; pair++)
     {
         const size_t i = nbr[pair].i;
@@ -192,15 +208,8 @@ double calculate_forces_nb(struct Parameters *p_parameters,
         const int type_j = p_vectors->type[j];
 
         // Lorentz-Berthelot mixing rules.
-        const double sigma =
-            0.5 * (p_parameters->sigma[type_i]
-                 + p_parameters->sigma[type_j]);
-
-        const double epsilon =
-            sqrt(p_parameters->epsilon[type_i]
-               * p_parameters->epsilon[type_j]);
-
-        const double sigma_sq = sigma * sigma;
+        const double epsilon = epsilon_pair[type_i][type_j];
+        const double sigma_sq = sigma_sq_pair[type_i][type_j];
 
         // Powers of sigma/r for the current separation.
         const double sr2 = sigma_sq / r_sq;
@@ -208,9 +217,8 @@ double calculate_forces_nb(struct Parameters *p_parameters,
         const double sr12 = sr6 * sr6;
 
         // The energy shift must use this pair's parameters too.
-        const double sc2 = sigma_sq / r_cutsq;
-        const double sc6 = sc2 * sc2 * sc2;
-        const double sc12 = sc6 * sc6;
+        const double sc6 = sc6_pair[type_i][type_j];
+        const double sc12 = sc12_pair[type_i][type_j];
 
         Epot += factor * 4.0 * epsilon
               * (sr12 - sr6 - sc12 + sc6);

@@ -1,0 +1,6 @@
+types: CH3=800 CH2=1200; mass=28860.4 amu; COM speed=1.02821868809e-14 internal
+all-pairs reference: interacting pairs=302244 E=722003.103267207 W=34293686.4107055
+all-pairs relative errors: energy=2.01549206126e-14 max force=4.83470713048e-14 virial=2.17258083826e-16
+closest pair to cutoff: gap=2.68948519278e-06 angstrom
+pairs crossing cutoff in virial scaling: h=1e-6: 2; h=1e-7: 0; h=1e-8: 0
+mass-update relative errors: velocity=0 kinetic energy=0

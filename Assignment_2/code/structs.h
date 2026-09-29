@@ -130,6 +130,8 @@ struct Parameters
     size_t num_dt_steps;     //!< Number of time steps
     size_t num_dt_output;    //!< Number of time steps between lines of screen output
     int force_test;          //!< if > 0, the forces on every force_test-th particle are tested against finite differences, after which the program exits
+    double force_test_delta; //!< Cartesian finite-difference displacement (angstrom)
+    double virial_test_delta; //!< Dimensionless isotropic finite-difference scaling
     int is_NVT;              //!< If equal 1 NVT ensemble (thermostat on), if equal 0 NVE ensemble
     double dt;               //!< integration time step
     struct Vec3D L;          //!< Box size in the three directions

@@ -130,6 +130,9 @@ int main(void)
     // and pass it here in place of calculate_forces.
     if (parameters.force_test > 0)
     {
+        printf("# U=%.17g delta=%.17g h=%.17g N=%zu restart=%s\n",
+               Epot, parameters.force_test_delta, parameters.virial_test_delta,
+               parameters.num_part, parameters.restart_in_filename);
         for(size_t i=0; i<parameters.num_part; i+=(size_t)parameters.force_test)
             forces_test(calculate_forces, (int)i, &parameters, &nbrlist, &vectors);
         virial_test(calculate_forces, &parameters, &nbrlist, &vectors);
