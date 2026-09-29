@@ -12,7 +12,7 @@
 /*  Dr. Ir. E.A.J.F. Peters: version 6.1, 17/9/2025                           */
 /******************************************************************************/ 
 
-/**
+/**    
  * For the PBS molecular-dynamics assignment, the code needs to be extended:
  * 
  * - Initialize vectors.type so particles get the proper type 
@@ -139,8 +139,8 @@ int main(void)
 
 
 
-    printf("step,time_internal,Epot_internal,Ekin_internal,Etot_internal,T_internal\n");
-
+    printf("step,time_internal,Epot_internal,Ekin_internal,Etot_internal,T_internal,T_CH3_K,T_CH2_K\n");
+    
     // Main MD loop using velocity-Verlet integration
     while (step < parameters.num_dt_steps) 
     { 
@@ -202,16 +202,34 @@ int main(void)
        
         if (step % parameters.num_dt_output == 0)
         {
-            const double dof = 3.0 * (double)parameters.num_part - 3.0;
+            const double dof =
+                3.0 * (double)parameters.num_part - 3.0;
+
             const double temperature = 2.0 * Ekin / dof;
 
-            printf("%zu,%.15g,%.15g,%.15g,%.15g,%.15g\n",
-                   step, time, Epot, Ekin, Epot + Ekin, temperature);
+            double sum_mv2[NUM_TYPES] = {0.0};
+            size_t count[NUM_TYPES] = {0};
+
+            for (size_t i = 0; i < parameters.num_part; i++)
+            {
+                const int type = vectors.type[i];
+
+                sum_mv2[type] += parameters.mass[type]
+                              * v3_dot(vectors.v[i], vectors.v[i]);
+
+                count[type]++;
+            }
+
+            const double T_CH3 =
+                sum_mv2[TYPE_CH3] / (3.0 * (double)count[TYPE_CH3]);
+
+            const double T_CH2 =
+                sum_mv2[TYPE_CH2] / (3.0 * (double)count[TYPE_CH2]);
+
+            printf("%zu,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",
+                   step, time, Epot, Ekin, Epot + Ekin,
+                   temperature, T_CH3, T_CH2);
         }
-
-
-
-
     }
 
     // Save final state
