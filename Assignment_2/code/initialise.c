@@ -431,48 +431,161 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
 
 
     // -------------------------------------------------------------------------
-    // Original multi-particle lattice initialization
+    // B6 multi-molecule initialization
     // -------------------------------------------------------------------------
     //
-    // This is retained for now because B5 only concerns one molecule.
-    // Packing many pentane molecules is addressed separately in task B6.
+    // Pack complete pentane molecules, rather than independent united-atom
+    // sites. For the production system we use 400 molecules = 2000 sites.
+    //
+    // The molecular centres are placed on a 10 x 10 x 4 grid. Each molecule
+    // starts in the same all-trans geometry used above. Its long molecular axis
+    // is aligned with z, while the zig-zag plane is randomly rotated around z.
+    //
+    // This preserves the correct bond lengths, angles and trans torsions while
+    // avoiding catastrophic initial overlaps. The configuration is deliberately
+    // ordered: B7 will show the relaxation of this artificial starting packing
+    // towards a liquid structure.
 
-    struct Vec3D dr;  // Displacement vector for positioning particles
-    struct Index3D n; // Number of grid cells along each axis
-    double dl;        // Lattice spacing
-    size_t ipart = 0; // Particle index; size_t, like the count it is compared
-                      // against and the arrays it indexes
+    if (p_parameters->num_part % 5 != 0)
+    {
+        fprintf(
+            stderr,
+            "Error: n-pentane initialization requires num_part to be a multiple of 5.\n"
+        );
+        exit(EXIT_FAILURE);
+    }
 
-    // Calculate lattice spacing based on particle number and box dimensions
-    dl = pow(
-        p_parameters->L.x *
-        p_parameters->L.y *
-        p_parameters->L.z /
-        ((double)p_parameters->num_part),
-        1.0 / 3.0
-    );
+    size_t num_molecules = p_parameters->num_part / 5;
 
-    n.i = (int)ceil(p_parameters->L.x / dl);
-    n.j = (int)ceil(p_parameters->L.y / dl);
-    n.k = (int)ceil(p_parameters->L.z / dl);
+    // B6 production packing: 400 pentane molecules.
+    const size_t nx = 10;
+    const size_t ny = 10;
+    const size_t nz = 4;
 
-    dr.x = p_parameters->L.x / (double)n.i;
-    dr.y = p_parameters->L.y / (double)n.j;
-    dr.z = p_parameters->L.z / (double)n.k;
+    if (num_molecules != nx * ny * nz)
+    {
+        fprintf(
+            stderr,
+            "Error: B6 packing expects 400 molecules (2000 particles); got %zu molecules.\n",
+            num_molecules
+        );
+        exit(EXIT_FAILURE);
+    }
 
-    ipart = 0;
 
-    for (size_t i = 0; i < n.i; ++i)
-        for (size_t j = 0; j < n.j; ++j)
-            for (size_t k = 0; k < n.k; ++k, ++ipart)
+    // Build one all-trans molecule in local coordinates.
+    double bond = p_parameters->r_0;
+    double alpha = M_PI - p_parameters->theta_0;
+
+    double dx = bond * cos(alpha);
+    double dy = bond * sin(alpha);
+
+    struct Vec3D local[5];
+
+    local[0] = v3(0.0, 0.0, 0.0);
+    local[1] = v3(bond, 0.0, 0.0);
+    local[2] = v3(bond + dx, dy, 0.0);
+    local[3] = v3(2.0 * bond + dx, dy, 0.0);
+    local[4] = v3(2.0 * bond + 2.0 * dx, 2.0 * dy, 0.0);
+
+
+    // Geometric centre of the local molecule.
+    struct Vec3D molecular_centre = {0.0, 0.0, 0.0};
+
+    for (size_t s = 0; s < 5; ++s)
+        molecular_centre =
+            v3_add(molecular_centre, local[s]);
+
+    molecular_centre =
+        v3_scl(1.0 / 5.0, molecular_centre);
+
+
+    // Unit vector along the end-to-end molecular axis in the local xy plane.
+    struct Vec3D end_to_end =
+        v3_sub(local[4], local[0]);
+
+    double end_length =
+        sqrt(
+            end_to_end.x * end_to_end.x +
+            end_to_end.y * end_to_end.y
+        );
+
+    double e_long_x = end_to_end.x / end_length;
+    double e_long_y = end_to_end.y / end_length;
+
+    // Perpendicular direction in the molecular plane.
+    double e_perp_x = -e_long_y;
+    double e_perp_y =  e_long_x;
+
+
+    // Grid spacing between molecular centres.
+    double spacing_x = p_parameters->L.x / (double)nx;
+    double spacing_y = p_parameters->L.y / (double)ny;
+    double spacing_z = p_parameters->L.z / (double)nz;
+
+
+    size_t molecule = 0;
+
+    for (size_t iz = 0; iz < nz; ++iz)
+    {
+        for (size_t iy = 0; iy < ny; ++iy)
+        {
+            for (size_t ix = 0; ix < nx; ++ix)
             {
-                if (ipart >= p_parameters->num_part)
-                    break;
+                // Centre of this molecule's grid cell.
+                struct Vec3D centre =
+                    v3(
+                        (ix + 0.5) * spacing_x,
+                        (iy + 0.5) * spacing_y,
+                        (iz + 0.5) * spacing_z
+                    );
 
-                p_vectors->r[ipart].x = (i + 0.5) * dr.x;
-                p_vectors->r[ipart].y = (j + 0.5) * dr.y;
-                p_vectors->r[ipart].z = (k + 0.5) * dr.z;
+
+                // Random azimuthal rotation of the zig-zag plane around the
+                // molecular long axis. This removes part of the artificial
+                // orientational order while keeping the long axis along z.
+                double phi =
+                    2.0 * M_PI *
+                    ((double)rand() / ((double)RAND_MAX + 1.0));
+
+                double cos_phi = cos(phi);
+                double sin_phi = sin(phi);
+
+
+                // Place the five united-atom sites of this molecule.
+                for (size_t s = 0; s < 5; ++s)
+                {
+                    struct Vec3D relative =
+                        v3_sub(local[s], molecular_centre);
+
+                    // Decompose the original planar molecule into:
+                    //
+                    // u : coordinate along its long axis
+                    // v : coordinate perpendicular to its long axis
+                    //
+                    // Then map u onto world z and rotate v randomly in xy.
+                    double u =
+                        relative.x * e_long_x +
+                        relative.y * e_long_y;
+
+                    double v =
+                        relative.x * e_perp_x +
+                        relative.y * e_perp_y;
+
+                    size_t particle = 5 * molecule + s;
+
+                    p_vectors->r[particle] =
+                        v3(
+                            centre.x + v * cos_phi,
+                            centre.y + v * sin_phi,
+                            centre.z + u
+                        );
+                }
+
+                ++molecule;
             }
+        }
+    }
 }
 
 
