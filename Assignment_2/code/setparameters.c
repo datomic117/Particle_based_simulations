@@ -170,7 +170,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     strcpy(
         p_parameters->restart_in_filename,
-        "restart_b5_thermalised.dat"
+        "restart_files/restart_b5_thermalised.dat"
     );
 
 
@@ -182,7 +182,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     strcpy(
         p_parameters->restart_out_filename,
-        "restart_b5_nve.dat"
+        "restart_files/restart_b5_nve.dat"
     );
 
 
