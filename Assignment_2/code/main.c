@@ -42,6 +42,7 @@
 #include "memory.h"
 #include "fileoutput.h"
 #include "force_test.h"
+#include "analysis.h"
 
 
 /*
@@ -439,6 +440,7 @@ int main(void)
     struct Vectors vectors;
     struct Parameters parameters;
     struct Nbrlist nbrlist;
+    struct Analysis analysis;
 
     size_t step;
     double Ekin, Epot, time;
@@ -481,6 +483,17 @@ int main(void)
             &vectors,
             &nbrlist
         );
+
+        // Independent replicas of the same equilibrated state: redraw the
+        // velocities from the Maxwell-Boltzmann distribution with another seed
+        if (parameters.reseed_velocities > 0)
+        {
+            srand(parameters.reseed_velocities);
+            initialise_velocities(
+                &parameters,
+                &vectors
+            );
+        }
 
         step = 0;
         time = 0.0;
@@ -649,6 +662,18 @@ int main(void)
     }
 
 
+    // On-the-fly analysis of the dihedral angles (C1) and the mean-square
+    // displacement of the molecular centres of mass (C2).
+    if (parameters.analysis_on == 1)
+    {
+        analysis_init(
+            &parameters,
+            &vectors,
+            &analysis
+        );
+    }
+
+
     // CSV output header.
     // The last two columns are the temperatures calculated separately
     // for the CH3 and CH2 particle populations.
@@ -770,7 +795,16 @@ int main(void)
         }
 
 
-        /// \todo Implement on-the-fly analysis of velocity distribution, torsion angle distribution and mean-square displacement
+        // On-the-fly analysis: unwrapped displacement, dihedral histograms,
+        // residence times and MSD (analysis.c)
+        if (parameters.analysis_on == 1)
+        {
+            analysis_update(
+                &parameters,
+                &vectors,
+                &analysis
+            );
+        }
 
 
         // Print to the screen to monitor the progress of the simulation
@@ -852,6 +886,19 @@ int main(void)
         &parameters,
         &vectors
     );
+
+
+    if (parameters.analysis_on == 1)
+    {
+        analysis_write(
+            &parameters,
+            &analysis
+        );
+
+        analysis_free(
+            &analysis
+        );
+    }
 
 
     // Step 5: Free memory and clean up

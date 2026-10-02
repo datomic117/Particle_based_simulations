@@ -10,6 +10,7 @@ void alloc_vectors(struct Vectors *p_vectors, size_t sz)
     p_vectors->type = (int *)malloc(sz * sizeof(int));
     p_vectors->r = (struct Vec3D *)malloc(sz * sizeof(struct Vec3D));
     p_vectors->dr = (struct Vec3D *)malloc(sz * sizeof(struct Vec3D));
+    p_vectors->r_unwrapped = (struct Vec3D *)malloc(sz * sizeof(struct Vec3D));
     p_vectors->v = (struct Vec3D *)malloc(sz * sizeof(struct Vec3D));
     p_vectors->f = (struct Vec3D *)malloc(sz * sizeof(struct Vec3D));
     p_vectors->bonds = NULL;
@@ -29,6 +30,8 @@ void free_vectors(struct Vectors *p_vectors)
     p_vectors->r = NULL;
     free(p_vectors->dr);
     p_vectors->dr = NULL;
+    free(p_vectors->r_unwrapped);
+    p_vectors->r_unwrapped = NULL;
     free(p_vectors->v);
     p_vectors->v = NULL;
     free(p_vectors->f);

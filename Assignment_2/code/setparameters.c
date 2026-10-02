@@ -120,7 +120,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // NVT simulation: Berendsen thermostat enabled.
 
-    p_parameters->is_NVT = 1;
+    p_parameters->is_NVT = 0;
 
 
     // -------------------------------------------------------------------------
@@ -179,12 +179,12 @@ void set_parameters(struct Parameters *p_parameters)
 
     // 20000 steps * 1 fs = approximately 20 ps.
 
-    p_parameters->num_dt_steps = 20000;
+    p_parameters->num_dt_steps = 400000;
 
 
     // Save thermodynamic output every 10 steps.
 
-    p_parameters->num_dt_output = 10;
+    p_parameters->num_dt_output = 100;
 
 
     // -------------------------------------------------------------------------
@@ -202,11 +202,11 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Save one PDB frame every 1000 steps.
 
-    p_parameters->num_dt_pdb = 1000;
+    p_parameters->num_dt_pdb = 100000000;
 
     strcpy(
         p_parameters->filename_pdb,
-        "b9_nvt_tau1"
+        "c_pdb_prod_1"
     );
 
     p_parameters->rescale_output = 1;
@@ -222,11 +222,11 @@ void set_parameters(struct Parameters *p_parameters)
     // B9 run, but keeping the path correct avoids confusion when restart mode
     // is enabled later.
 
-    p_parameters->load_restart = 0;
+    p_parameters->load_restart = 1;
 
     strcpy(
         p_parameters->restart_in_filename,
-        "restart_files/restart_b5_thermalised.dat"
+        "restart_files/restart_c_equil_1.dat"
     );
 
 
@@ -236,11 +236,38 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Save the final B9 state after 20000 steps.
 
-    p_parameters->num_dt_restart = 20000;
+    p_parameters->num_dt_restart = 400000;
 
     strcpy(
         p_parameters->restart_out_filename,
-        "restart_files/restart_b9_tau1.dat"
+        "restart_files/restart_c_prod_1.dat"
+    );
+
+
+    // -------------------------------------------------------------------------
+    // On-the-fly analysis (C1 and C2)
+    // -------------------------------------------------------------------------
+    //
+    // analysis_on = 1 switches on the dihedral statistics (C1); msd_on = 1 also
+    // accumulates the mean-square displacement of the molecular centres of
+    // mass (C2). All intervals are in time steps (1 step = 1 fs).
+    //
+    // Output files: <filename_analysis>_hist2d.csv, _dwell.csv, _phi_trace.csv
+    // and (if msd_on) _msd.csv, written every num_dt_block steps and at the end.
+
+    p_parameters->reseed_velocities = 0;     // 0 = keep the velocities of the restart file
+
+    p_parameters->analysis_on = 1;
+    p_parameters->msd_on = 1;
+
+    p_parameters->num_dt_phi = 100;          // dihedrals every 0.1 ps
+    p_parameters->num_dt_msd = 10;           // MSD sample every 10 fs
+    p_parameters->num_dt_msd_origin = 1000;  // new MSD time origin every 1 ps
+    p_parameters->num_dt_block = 100000;      // blocks of 10 ps
+
+    strcpy(
+        p_parameters->filename_analysis,
+        "../data/c_prod_1"
     );
 
 

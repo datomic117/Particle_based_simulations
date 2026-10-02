@@ -1,6 +1,6 @@
 import numpy as np
 
-filename = "b6_start.pdb"
+filename = "../b6_start.pdb"
 L = 42.4612104
 
 positions = []

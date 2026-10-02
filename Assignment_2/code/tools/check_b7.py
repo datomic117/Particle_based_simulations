@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-filename = r"..\data\b7_nve.csv"
+filename = "../../data/b7_nve.csv"
 
 try:
     df = pd.read_csv(filename)

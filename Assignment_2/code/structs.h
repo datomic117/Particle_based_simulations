@@ -201,6 +201,16 @@ struct Parameters
     double c_1;                         //!< Torsion coefficient c1
     double c_2;                         //!< Torsion coefficient c2
     double c_3;                         //!< Torsion coefficient c3
+
+    // On-the-fly analysis (C1 dihedral statistics, C2 mean-square displacement)
+    unsigned int reseed_velocities;     //!< if > 0, redraw the velocities with this random seed after loading a restart file (independent replicas)
+    char analysis_on;                   //!< if equal 1 the analysis of dihedrals (and MSD) runs
+    char msd_on;                        //!< if equal 1 the MSD of the molecular centres of mass is accumulated
+    size_t num_dt_phi;                  //!< Number of time steps between dihedral samples
+    size_t num_dt_msd;                  //!< Number of time steps between MSD samples
+    size_t num_dt_msd_origin;           //!< Number of time steps between MSD time origins
+    size_t num_dt_block;                //!< Number of time steps per analysis block (error estimates)
+    char filename_analysis[1024];       //!< prefix of the analysis output files
 };
 
 
@@ -279,6 +289,7 @@ struct Vectors
 
     struct Vec3D *r;            //!< positions
     struct Vec3D *dr;           //!< displacements of the last time step
+    struct Vec3D *r_unwrapped;  //!< positions without periodic wrapping, used for the MSD
     struct Vec3D *v;            //!< velocities
     struct Vec3D *f;            //!< forces
 

@@ -458,6 +458,20 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
     r_cutsq = p_parameters->r_cut * p_parameters->r_cut;
     double Epot = 0.0;
 
+    double pair_sigmasq[NUM_TYPES * NUM_TYPES];
+    double pair_epsilon[NUM_TYPES * NUM_TYPES];
+    double pair_Epot_cutoff[NUM_TYPES * NUM_TYPES];
+    for (int a = 0; a < NUM_TYPES; a++)
+        for (int b = 0; b < NUM_TYPES; b++)
+        {
+            double sigma = 0.5 * (p_parameters->sigma[a] + p_parameters->sigma[b]);
+            double sr2_cut = sigma * sigma / r_cutsq;
+            double sr6_cut = sr2_cut * sr2_cut * sr2_cut;
+            pair_sigmasq[a * NUM_TYPES + b] = sigma * sigma;
+            pair_epsilon[a * NUM_TYPES + b] = sqrt(p_parameters->epsilon[a] * p_parameters->epsilon[b]);
+            pair_Epot_cutoff[a * NUM_TYPES + b] = sr6_cut * sr6_cut - sr6_cut;
+        }
+
     // Loop through the neighbor list and calculate the forces for each particle pair
     for (size_t k = 0; k < num_nbrs; k++)
     {
@@ -475,33 +489,13 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
         {
             double factor = nbr[k].factor; // 0 or 1, or the 1-4 scaling factor
 
-            /// \todo Make the LJ parameters type-dependent (CH3 and CH2)
-
-            // Get the particle types
-            int type_i = p_vectors->type[i];
-            int type_j = p_vectors->type[j];
-
-            // Lorentz mixing rule:
-            // sigma_ij = (sigma_i + sigma_j) / 2
-            double sigma = 0.5 * (
-                p_parameters->sigma[type_i] +
-                p_parameters->sigma[type_j]
-            );
-
-            // Berthelot mixing rule:
-            // epsilon_ij = sqrt(epsilon_i * epsilon_j)
-            double epsilon = sqrt(
-                p_parameters->epsilon[type_i] *
-                p_parameters->epsilon[type_j]
-            );
-
-            double sigmasq = sigma * sigma;
-
-            // The shifted LJ potential must use the parameters of this pair
-            double sr2_cut = sigmasq / r_cutsq;
-            double sr6_cut = sr2_cut * sr2_cut * sr2_cut;
-            double sr12_cut = sr6_cut * sr6_cut;
-            double Epot_cutoff = sr12_cut - sr6_cut;
+            // Pair parameters of this type combination: Lorentz-Berthelot mixing
+            // sigma_ij = (sigma_i + sigma_j) / 2, epsilon_ij = sqrt(epsilon_i epsilon_j),
+            // tabulated once per call; the shifted LJ potential uses the pair's own values
+            const int tp = p_vectors->type[i] * NUM_TYPES + p_vectors->type[j];
+            const double sigmasq = pair_sigmasq[tp];
+            const double epsilon = pair_epsilon[tp];
+            const double Epot_cutoff = pair_Epot_cutoff[tp];
 
             // The LJ powers are computed by squaring: (sigma/r)^6 and
             // (sigma/r)^12 from (sigma/r)^2, with no call to pow()
