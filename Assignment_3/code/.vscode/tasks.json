@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "C/C++: build md_debug for debugging",
+            "command": "gcc.exe",
+            "args": [
+                "-g",
+                "*.c",
+                "--output",
+                "md_debug.exe",
+                "-lm"
+            ],
+            "options": {
+                "cwd": "${fileDirname}",
+                "shell": {
+                    "executable": "bash.exe",
+                    "args": ["-c"]
+                }
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "C/C++: build md for production runs",
+            "command": "gcc.exe",
+            "args": [
+                "-O3",
+                "${fileDirname}/*.c",
+                "--output",
+                "${fileDirname}/md.exe",
+                "-lm"
+            ],
+            "options": {
+                "cwd": "${fileDirname}",
+                "shell": {
+                    "executable": "bash.exe",
+                    "args": ["-c"]
+                }
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        }
+    ]
+}

@@ -1,0 +1,82 @@
+/**
+@mainpage Documentation of MD-PBS
+@tableofcontents
+
+This is the base Molecular Dynamics code of the class Particle-based Simulations.
+It implements a periodic simulation box filled with Lennard-Jones particles.
+In the code, a velocity-Verlet scheme is implemented in the @ref main function.
+
+Within one time step, the velocity-Verlet scheme sequentially performs:
+- @f$ \mathbf{v}_i := \mathbf{v}_i + \frac{1}{2 m} \, \mathbf{f}_i \Delta t @f$, in @ref update_velocities_half_dt
+- Change velocities by thermostatting. This needs to be implemented in @ref thermostat
+- @f$ \mathbf{r}_i := \mathbf{r}_i + \mathbf{v}_i \Delta t @f$ in @ref update_positions
+- Put all particles back in the simulation box, taking into account periodic boundary conditions in @ref boundary_conditions
+- Update the neighbor list in @ref update_nbrlist
+- Compute forces in @ref calculate_forces, using the updated positions and neighbor list
+- @f$ \mathbf{v}_i := \mathbf{v}_i + \frac{1}{2 m} \, \mathbf{f}_i \Delta t @f$ in @ref update_velocities_half_dt
+
+@section intro_sec Introduction
+
+The starting code simulates a one-species Lennard-Jones (LJ) fluid; the assignment
+extends it into a molecular-dynamics simulation of united-atom n-butane. The
+open tasks are marked in the code with `todo` markers — see the
+<a href="todo.html">todo list</a> for an overview — and restated at the top of
+main.c.
+
+The code is modular: each module is one `.c` file with a matching header, and
+`main.c` shows the whole control flow of a simulation in one readable function.
+The code is written to be understood without losing overview, while still being
+efficient enough for production runs: the techniques that matter for
+performance (neighbor lists, cell-linked lists, the minimum image convention)
+are all implemented in nbrlist.c and structs.h and documented there.
+
+@section structure_sec Code Structure
+
+The code is organized into several key modules:
+
+- **main.c**: The central part of the simulation: initialization, the main MD loop using velocity-Verlet integration, and the periodic output.
+- **setparameters.c**: The only place run settings live. There are no input files: changing a run means editing @ref set_parameters and recompiling.
+- **structs.h**: All data types, including the 3D-vector type @ref Vec3D and its `v3_*` helper functions used throughout the code.
+- **initialise.c**: Sets up the initial configuration: particle types, positions on a lattice, Maxwell-Boltzmann velocities, and the molecular topology (bonds, angles, dihedrals).
+- **forces.c**: Computes the forces: non-bonded Lennard-Jones interactions over the neighbor list, and the bonded (bond, angle, dihedral) interactions.
+- **dynamics.c**: The velocity-Verlet integration steps, the periodic boundary conditions and the thermostat.
+- **nbrlist.c**: Builds and maintains the neighbor list (with an underlying cell-linked list) that makes the non-bonded force computation scale linearly with the number of particles.
+- **force_test.c**: A finite-difference checker for the forces and the virial. Use it on every force term you implement (set `force_test` in setparameters.c).
+- **fileoutput.c**: Trajectory output in `.pdb`/`.xyz` format for visualization in VMD or OVITO, and binary restart files.
+
+@section simulation_flow Simulation Flow
+
+The typical flow of a simulation is as follows:
+
+1. **Initialization**:
+   - @ref set_parameters fills the @ref Parameters struct and @ref alloc_memory sizes all arrays from it.
+   - @ref initialise sets up types, topology, lattice positions and random velocities; alternatively a restart file is loaded.
+
+2. **Neighbor list construction**:
+   - @ref build_nbrlist collects all particle pairs within `r_cut + r_shell`, using a cell-linked list.
+
+3. **Main MD loop** (each time step):
+   - Half-step velocity update (and thermostat in an NVT run).
+   - Position update and periodic boundary conditions.
+   - Neighbor-list rebuild, but only when a particle has moved more than `r_shell/2` since the last build.
+   - Force calculation and the second half-step velocity update.
+   - Periodically: screen output, trajectory frames, restart file, on-the-fly analysis.
+
+4. **Finalization**:
+   - The final state is saved and all memory is freed.
+
+@section additional_info Additional Information
+
+- **Units**: The demonstration parameters are in reduced Lennard-Jones units.
+  The code works in any consistent unit system: the n-butane force field of the
+  assignment expresses energies in K (energy divided by the Boltzmann
+  constant), lengths in Angstrom and masses in g/mol.
+
+- **Extending the code**: When adding a force term, follow the convention of
+  @ref calculate_forces — zero nothing yourself, *add* to the force array,
+  accumulate the virial, and return the potential energy. When adding a
+  parameter, add it to @ref Parameters and set it in @ref set_parameters;
+  output cadences are named `num_dt_<thing>`.
+
+For further details, refer to the individual modules and their corresponding documentation.
+*/
