@@ -10,9 +10,16 @@
 /// Upper limit on the number of samples stored in the single-molecule phi trace.
 #define TRACE_MAX 5000
 
+/// Bin width used for the on-the-fly radial distribution function, g(r).
+#define RDF_DR 0.05
+/// Maximum radius for the radial distribution function, in internal length units.
+#define RDF_MAX_R 3.0
+/// Number of radial bins used for g(r): floor(max_r / dr) with a small safety margin.
+#define RDF_BINS 60
+
 /**
- * @brief State of the on-the-fly analysis: C1 (dihedral statistics) and C2
- * (mean-square displacement of the molecular centres of mass).
+ * @brief State of the on-the-fly analysis: C1 (dihedral statistics), C2
+ * (mean-square displacement) and A3 (radial distribution function g(r)).
  */
 struct Analysis
 {
@@ -39,6 +46,11 @@ struct Analysis
     double *msd_block_sum;    //!< [block][num_lags], blocks are labelled by the origin's block
     size_t *msd_block_cnt;    //!< [block][num_lags]
     Vec3D *com;               //!< [num_mol] work array: current centres of mass
+
+    // A3: radial distribution function g(r) for AA, AB and BB pairs
+    size_t rdf_samples;       //!< number of samples accumulated for g(r)
+    size_t type_count[NUM_TYPES]; //!< current per-type counts for normalization of the RDF
+    size_t rdf_counts[NUM_TYPES][NUM_TYPES][RDF_BINS]; //!< accumulated pair counts per type pair and radius bin
 };
 
 /**

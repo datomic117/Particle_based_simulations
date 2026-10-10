@@ -4,6 +4,7 @@
 #include <math.h>
 #include "constants.h"
 #include "structs.h"
+#include "random.h"
 
 // Set the parameters of this simulation. This is the only place run settings
 // live: there are no input files, so changing a run means editing the values
@@ -19,15 +20,22 @@ void set_parameters(struct Parameters *p_parameters)
     // Particle types and non-bonded force field
     // -------------------------------------------------------------------------
 
-    p_parameters->mass[0] = 15.035;   // CH3, amu
-    p_parameters->mass[1] = 14.027;   // CH2, amu
+    p_parameters->mass[0] = 1;   // A
+    p_parameters->mass[1] = 1;   // B
 
-    p_parameters->epsilon[0] = 98.0;  // CH3, in kB K
-    p_parameters->epsilon[1] = 46.0;  // CH2, in kB K
+    // Fluctuation-Dissipation constant
+    p_parameters->gamma = 4.5;
 
-    p_parameters->sigma[0] = 3.75;    // CH3, Angstrom
-    p_parameters->sigma[1] = 3.95;    // CH2, Angstrom
+    // Part B force switches: set to 0 to turn off a contribution while keeping
+    // the rest of the DPD force calculation active.
+    p_parameters->conservative_force_on = 1;
+    p_parameters->dissipative_random_force_on = 1;
 
+    p_parameters->a[0] = 25; // a-AA and a-BB
+    p_parameters->a[1] = 25; // a-AB
+
+    p_parameters->chain_length = 5; // chain length
+    p_parameters->demix_initialisation = 0; //set to 0 for normal initialisation, 1 for demixed initialisation
 
     // -------------------------------------------------------------------------
     // Target temperature
@@ -35,26 +43,8 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Energy is expressed in kB K, so the numerical value equals the
     // temperature in Kelvin.
-    p_parameters->kT = 293.0;
-
-
-    // -------------------------------------------------------------------------
-    // B9: second Berendsen thermostat test
-    // -------------------------------------------------------------------------
-    //
-    // Weaker thermostat coupling:
-    //
-    // tau_T = 0.9118 internal time units
-    //       ~= 1.0 ps
-    //
-    // This is compared with:
-    //
-    // tau = 0.01 ps
-    //
-    // and with the NVE reference from B7.
-
-    p_parameters->tau_T = 0.9118;
-
+    p_parameters->kT = 1;
+    p_parameters->sigma = sqrt(2.0 * p_parameters->gamma * p_parameters->kT);
 
     // -------------------------------------------------------------------------
     // Bonded force-field parameters for n-pentane
@@ -64,122 +54,59 @@ void set_parameters(struct Parameters *p_parameters)
     //
     // U_bond(r) = 1/2 * k_b * (r - r_0)^2
 
-    p_parameters->r_0 = 1.54;          // equilibrium bond length, Angstrom
-    p_parameters->k_b = 3.19e5;        // K / Angstrom^2
+    p_parameters->r_0 = 0;          // equilibrium bond length, Angstrom
+    p_parameters->k_b = 2;        // K / Angstrom^2
 
 
-    // Harmonic angle potential:
-    //
-    // U_angle(theta) = 1/2 * k_theta * (theta - theta_0)^2
-
-    p_parameters->theta_0 =
-        114.0 * M_PI / 180.0;          // equilibrium angle, radians
-
-    p_parameters->k_theta =
-        6.25e4;                        // K / rad^2
-
-
-    // Ryckaert-Bellemans torsion potential:
-    //
-    // U_tors(phi) =
-    //     c_0
-    //   + c_1 * cos(phi)
-    //   + c_2 * cos(phi)^2
-    //   + c_3 * cos(phi)^3
-
-    p_parameters->c_0 = 1010.0;
-    p_parameters->c_1 = -2018.9;
-    p_parameters->c_2 = 136.4;
-    p_parameters->c_3 = 3165.3;
-
-
-    // -------------------------------------------------------------------------
-    // Simulation system
-    // -------------------------------------------------------------------------
-
-    // 400 pentane molecules.
-    //
-    // Each molecule contains five united-atom sites:
-    //
-    // CH3 - CH2 - CH2 - CH2 - CH3
-    //
-    // Therefore:
-    //
-    // 400 * 5 = 2000 particles.
-
-    p_parameters->num_part = 2000;
+    
 
 
     // Not a finite-difference force test.
     p_parameters->force_test = 0;
 
-
-    // -------------------------------------------------------------------------
-    // Ensemble
-    // -------------------------------------------------------------------------
-
-    // NVT simulation: Berendsen thermostat enabled.
-
-    p_parameters->is_NVT = 0;
-
-
     // -------------------------------------------------------------------------
     // Intramolecular non-bonded exclusions
     // -------------------------------------------------------------------------
     //
-    // Exclude:
-    //
-    // 1-2 interactions
-    // 1-3 interactions
-    // 1-4 interactions
-    //
-    // 1-5 interactions remain active.
+    // All intermolecular bonds are included in the nb
 
-    p_parameters->factor_12_nb = 0.0;
-    p_parameters->factor_13_nb = 0.0;
-    p_parameters->factor_14_nb = 0.0;
-
-
-    /// \todo Set the time step, box size and cut-off distance to values appropriate
-    /// for n-pentane at a mass density of 626 kg/m3
-
+    p_parameters->factor_12_nb = 1.0;
+    p_parameters->factor_13_nb = 1.0;
+    p_parameters->factor_14_nb = 1.0;
 
     // -------------------------------------------------------------------------
     // Time step
     // -------------------------------------------------------------------------
 
-    // 1 fs expressed in internal simulation time units.
-
-    p_parameters->dt = 0.0009118;
+    // 1 fs expressed in internal simulation time units. Where time is equal to sqrt(3)
+    
+    p_parameters->dt = 0.04*sqrt(3);
 
 
     // -------------------------------------------------------------------------
     // Simulation box
     // -------------------------------------------------------------------------
     //
-    // For 400 pentane molecules at:
-    //
-    // rho = 626 kg/m^3
-    //
-    // the cubic box length is:
-    //
-    // L = 42.4612104 Angstrom
+    // Box length as given by the run requirements
 
     p_parameters->L =
         (struct Vec3D){
-            42.4612104,
-            42.4612104,
-            42.4612104
+            10,
+            10,
+            10
         };
+
+    // Number of particles as given by the run requirements
+    p_parameters->num_part = 3* p_parameters-> L.x * p_parameters-> L.y * p_parameters-> L.z;
 
 
     // -------------------------------------------------------------------------
     // Simulation length
     // -------------------------------------------------------------------------
 
-    // 20000 steps * 1 fs = approximately 20 ps.
+    // timesteps as given by the run requirements
 
-    p_parameters->num_dt_steps = 400000;
+    p_parameters->num_dt_steps = 0;
 
 
     // Save thermodynamic output every 10 steps.
@@ -191,9 +118,9 @@ void set_parameters(struct Parameters *p_parameters)
     // Non-bonded cutoff and neighbor list
     // -------------------------------------------------------------------------
 
-    p_parameters->r_cut = 14.0;
+    p_parameters->r_cut = 1;
 
-    p_parameters->r_shell = 0.4;
+    p_parameters->r_shell = 1;
 
 
     // -------------------------------------------------------------------------
@@ -202,7 +129,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Save one PDB frame every 1000 steps.
 
-    p_parameters->num_dt_pdb = 100000000;
+    p_parameters->num_dt_pdb = 1000;
 
     strcpy(
         p_parameters->filename_pdb,
@@ -222,7 +149,7 @@ void set_parameters(struct Parameters *p_parameters)
     // B9 run, but keeping the path correct avoids confusion when restart mode
     // is enabled later.
 
-    p_parameters->load_restart = 1;
+    p_parameters->load_restart = 0;
 
     strcpy(
         p_parameters->restart_in_filename,
@@ -257,8 +184,8 @@ void set_parameters(struct Parameters *p_parameters)
 
     p_parameters->reseed_velocities = 0;     // 0 = keep the velocities of the restart file
 
-    p_parameters->analysis_on = 1;
-    p_parameters->msd_on = 1;
+    p_parameters->analysis_on = 0;
+    p_parameters->msd_on = 0;
 
     p_parameters->num_dt_phi = 100;          // dihedrals every 0.1 ps
     p_parameters->num_dt_msd = 10;           // MSD sample every 10 fs

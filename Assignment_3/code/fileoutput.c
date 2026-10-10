@@ -30,8 +30,22 @@ void record_trajectories_pdb(int reset, struct Parameters *p_parameters, struct 
   fprintf(fp_traj, "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-10s%-3s\n", rs*p_parameters->L.x, rs*p_parameters->L.y, rs*p_parameters->L.z, 90.0, 90.0, 90.0, "P 1", "1");
   for (size_t i = 0; i < p_parameters->num_part; i++)
   {
-    fprintf(fp_traj, "HETATM%5u  C   UNK A   1    %8.3f%8.3f%8.3f  1.00  0.00           C\n", (unsigned int)i % 100000, rs*p_vectors->r[i].x, rs*p_vectors->r[i].y, rs*p_vectors->r[i].z);
-  }
+    const char *atom_name;
+    const char *part_type;
+    if (p_vectors->type[i] == 0)
+    {
+      atom_name = "A";
+      part_type = "H";
+    }
+    else
+    {
+      atom_name = "B";
+      part_type = "X";
+    }
+    
+    fprintf(fp_traj, "HETATM%5u  %s   UNK A   1    %8.3f%8.3f%8.3f  1.00  0.00           %s\n", (unsigned int)i % 100000, atom_name, rs*p_vectors->r[i].x, rs*p_vectors->r[i].y, rs*p_vectors->r[i].z,part_type);
+    }
+  
   fprintf(fp_traj, "ENDMDL\n");
 
   fclose(fp_traj);

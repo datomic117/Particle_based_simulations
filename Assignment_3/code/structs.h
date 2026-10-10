@@ -2,6 +2,10 @@
 #define TYPES_MD_H_
 #include <math.h>
 #include "constants.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 /* This header file contains definitions of struct types used in the molecular
    dynamics code, and the small vector helpers (v3_*) used throughout. */
@@ -145,6 +149,8 @@ struct Parameters
     double dt;               //!< integration time step
     struct Vec3D L;          //!< Box size in the three directions
 
+    
+
     /**
      * Scaling of the non-bonded interaction between atoms that are one, two or
      * three bonds apart. Zero leaves the pair out of the non-bonded interaction
@@ -162,6 +168,14 @@ struct Parameters
     double kT;               //!< Thermal energy
     double tau_T;            //!< Thermostat relaxation time
 
+    double gamma;           //
+    double a[NUM_TYPES];    // 
+    double sigma;           //
+    int conservative_force_on;           //!< 1 enables the repulsive DPD conservative force, 0 disables it
+    int dissipative_random_force_on;     //!< 1 enables the dissipative and random DPD forces together, 0 disables both
+    double chain_length;
+    char demix_initialisation;
+
     double r_cut;            //!< Cut-off distance for LJ interaction
     double r_shell;          //!< Shell thickness for neighbor list
 
@@ -177,30 +191,13 @@ struct Parameters
     char restart_in_filename[1024];  //!< filename for loaded restart file
     char restart_out_filename[1024]; //!< filename for saved restart file
 
-    /// \todo Make the mass and the LJ parameters depend on the particle type, and
-    /// add the parameters of the bond, angle and dihedral potentials and of the thermostat
-
     double mass[NUM_TYPES];             //!< Mass of a particle
-    double epsilon[NUM_TYPES];          //!< LJ interaction strength
-    double sigma[NUM_TYPES];            //!< LJ particle diameter
 
     // Bond potential:
     // U_bond = 1/2 * k_b * (r - r_0)^2
     double r_0;                         //!< Equilibrium bond length
     double k_b;                         //!< Harmonic bond force constant
 
-    // Angle potential:
-    // U_angle = 1/2 * k_theta * (theta - theta_0)^2
-    double theta_0;                     //!< Equilibrium bond angle in radians
-    double k_theta;                     //!< Harmonic angle force constant
-
-    // Ryckaert-Bellemans torsion:
-    // U(phi) = c_0 + c_1*cos(phi)
-    //        + c_2*cos(phi)^2 + c_3*cos(phi)^3
-    double c_0;                         //!< Torsion coefficient c0
-    double c_1;                         //!< Torsion coefficient c1
-    double c_2;                         //!< Torsion coefficient c2
-    double c_3;                         //!< Torsion coefficient c3
 
     // On-the-fly analysis (C1 dihedral statistics, C2 mean-square displacement)
     unsigned int reseed_velocities;     //!< if > 0, redraw the velocities with this random seed after loading a restart file (independent replicas)
