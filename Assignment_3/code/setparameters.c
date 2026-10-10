@@ -31,8 +31,8 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->conservative_force_on = 1;
     p_parameters->dissipative_random_force_on = 1;
 
-    p_parameters->a[0] = 25; // a-AA and a-BB
-    p_parameters->a[1] = 25; // a-AB
+    p_parameters->a[0] = 25; // fixed a_ii: a-AA and a-BB
+    p_parameters->a[1] = 25; // selectable a_ij: a-AB
 
     p_parameters->chain_length = 5; // chain length
     p_parameters->demix_initialisation = 0; //set to 0 for normal initialisation, 1 for demixed initialisation

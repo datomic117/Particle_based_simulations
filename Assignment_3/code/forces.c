@@ -136,13 +136,11 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
         {
             double factor = nbr[k].factor; // 0 or 1, or the 1-4 scaling factor
 
-            a_ij = p_parameters->a[0]; //TO DO: add selector
+            const int type_i = p_vectors->type[i];
+            const int type_j = p_vectors->type[j];
+            a_ij = (type_i == type_j) ? p_parameters->a[0] : p_parameters->a[1];
 
-            // Pair parameters of this type combination: Lorentz-Berthelot mixing
-            // sigma_ij = (sigma_i + sigma_j) / 2, epsilon_ij = sqrt(epsilon_i epsilon_j),
-            // tabulated once per call; the shifted LJ potential uses the pair's own values
-            const int tp = p_vectors->type[i] * NUM_TYPES + p_vectors->type[j];
-
+        
             double wC = 1.0 - (r_ij / r_cut);
             r_hat = v3_scl(1.0 / r_ij, rij.v);
             ft = (struct Vec3D){0.0, 0.0, 0.0};
