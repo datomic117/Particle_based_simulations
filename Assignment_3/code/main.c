@@ -173,7 +173,7 @@ int main(void)
     // CSV output header.
     // The last two columns are the temperatures calculated separately
     // for the CH3 and CH2 particle populations.
-    printf(
+    fprintf(stdout,
         "step,time,Epot,Ekin,Etot,T,T_CH3_K,T_CH2_K\n"
     );
 
@@ -186,15 +186,12 @@ int main(void)
 
 
         // Update velocities (half-step)
-        /// \todo Implement the use of type-dependent masses
         Ekin = update_velocities_half_dt(
             &parameters,
             &nbrlist,
             &vectors
         );
 
-
-        /// \todo Implement and apply the Berendsen thermostat to maintain temperature (dynamics.c)
 
 
         // Update positions
@@ -235,38 +232,14 @@ int main(void)
             &vectors
         );
 
-
-        // Apply the thermostat after the complete velocity-Verlet step.
-        if (parameters.is_NVT == 1)
-        {
-            thermostat(
-                &parameters,
-                &vectors,
-                Ekin
+        fprintf(stdout,
+                "%zu,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",
+                step,
+                time,
+                Epot,
+                Ekin,
+                Epot + Ekin
             );
-
-
-            // Recalculate kinetic energy after scaling
-            // the velocities with the thermostat.
-            Ekin = 0.0;
-
-            for (size_t i = 0; i < parameters.num_part; i++)
-            {
-                const int type =
-                    vectors.type[i];
-
-                const double mass =
-                    parameters.mass[type];
-
-                Ekin +=
-                    0.5
-                    * mass
-                    * v3_dot(
-                        vectors.v[i],
-                        vectors.v[i]
-                    );
-            }
-        }
 
 
         // Output system state every 'num_dt_pdb' steps
@@ -291,87 +264,13 @@ int main(void)
         }
 
 
-        // On-the-fly analysis: unwrapped displacement, dihedral histograms,
-        // residence times and MSD (analysis.c)
+        // On-the-fly analysis: (analysis.c)
         if (parameters.analysis_on == 1)
         {
             analysis_update(
                 &parameters,
                 &vectors,
                 &analysis
-            );
-        }
-
-
-        // Print to the screen to monitor the progress of the simulation
-        if (step % parameters.num_dt_output == 0)
-        {
-            // Total system temperature.
-            // Three degrees of freedom are removed because
-            // the centre-of-mass momentum is zero.
-            const double dof =
-                3.0 * (double)parameters.num_part - 3.0;
-
-            const double temperature =
-                2.0 * Ekin / dof;
-
-
-            // Calculate the temperature implied by each
-            // particle type separately.
-            //
-            // type 0 = CH3
-            // type 1 = CH2
-            double sum_mv2[NUM_TYPES] =
-                {0.0};
-
-            size_t count[NUM_TYPES] =
-                {0};
-
-
-            for (size_t i = 0; i < parameters.num_part; i++)
-            {
-                const int type =
-                    vectors.type[i];
-
-                const double mass =
-                    parameters.mass[type];
-
-                sum_mv2[type] +=
-                    mass
-                    * v3_dot(
-                        vectors.v[i],
-                        vectors.v[i]
-                    );
-
-                count[type]++;
-            }
-
-
-            // For one particle type:
-            //
-            //     T = sum(m v^2) / (3 N)
-            //
-            // Energy is expressed in kB K, so the numerical
-            // result is directly the temperature in Kelvin.
-            const double T_CH3 =
-                sum_mv2[0]
-                / (3.0 * (double)count[0]);
-
-            const double T_CH2 =
-                sum_mv2[1]
-                / (3.0 * (double)count[1]);
-
-
-            printf(
-                "%zu,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",
-                step,
-                time,
-                Epot,
-                Ekin,
-                Epot + Ekin,
-                temperature,
-                T_CH3,
-                T_CH2
             );
         }
     }

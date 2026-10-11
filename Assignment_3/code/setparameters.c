@@ -57,10 +57,6 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->r_0 = 0;          // equilibrium bond length, Angstrom
     p_parameters->k_b = 2;        // K / Angstrom^2
 
-
-    
-
-
     // Not a finite-difference force test.
     p_parameters->force_test = 0;
 
@@ -106,7 +102,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // timesteps as given by the run requirements
 
-    p_parameters->num_dt_steps = 0;
+    p_parameters->num_dt_steps = 20000;
 
 
     // Save thermodynamic output every 10 steps.
@@ -143,17 +139,12 @@ void set_parameters(struct Parameters *p_parameters)
     // Restart input
     // -------------------------------------------------------------------------
 
-    // Start from a freshly generated packed B6 configuration.
-    //
-    // load_restart = 0 means this file is NOT actually loaded during this
-    // B9 run, but keeping the path correct avoids confusion when restart mode
-    // is enabled later.
-
+    //Start from saved file (For B1 and B2) from scratch: 0, from restart file: 1
     p_parameters->load_restart = 0;
 
     strcpy(
         p_parameters->restart_in_filename,
-        "restart_files/restart_c_equil_1.dat"
+        "restart_files/restart_monomer_fluid.dat"
     );
 
 
@@ -161,13 +152,13 @@ void set_parameters(struct Parameters *p_parameters)
     // Restart output
     // -------------------------------------------------------------------------
 
-    // Save the final B9 state after 20000 steps.
+    // Save the state every 1000 steps.
 
-    p_parameters->num_dt_restart = 400000;
+    p_parameters->num_dt_restart = 1000;
 
     strcpy(
         p_parameters->restart_out_filename,
-        "restart_files/restart_c_prod_1.dat"
+        "restart_files/restart_monomer_fluid.dat"
     );
 
 
