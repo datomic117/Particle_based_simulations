@@ -34,7 +34,7 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->a[0] = 25; // fixed a_ii: a-AA and a-BB
     p_parameters->a[1] = 25; // selectable a_ij: a-AB
 
-    p_parameters->chain_length = 5; // chain length
+    p_parameters->chain_length = 1; // chain length
     p_parameters->demix_initialisation = 0; //set to 0 for normal initialisation, 1 for demixed initialisation
 
     // -------------------------------------------------------------------------
@@ -102,12 +102,12 @@ void set_parameters(struct Parameters *p_parameters)
 
     // timesteps as given by the run requirements
 
-    p_parameters->num_dt_steps = 20000;
+    p_parameters->num_dt_steps = 200;
 
 
-    // Save thermodynamic output every 10 steps.
+    // Save thermodynamic output every n steps.
 
-    p_parameters->num_dt_output = 100;
+    p_parameters->num_dt_output = 10;
 
 
     // -------------------------------------------------------------------------
@@ -140,7 +140,7 @@ void set_parameters(struct Parameters *p_parameters)
     // -------------------------------------------------------------------------
 
     //Start from saved file (For B1 and B2) from scratch: 0, from restart file: 1
-    p_parameters->load_restart = 0;
+    p_parameters->load_restart = 1;
 
     strcpy(
         p_parameters->restart_in_filename,

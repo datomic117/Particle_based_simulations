@@ -142,6 +142,11 @@ int main(void)
             &parameters,
             &vectors
         );
+
+        save_restart(
+            &parameters,
+            &vectors
+        );
     }
 
 
