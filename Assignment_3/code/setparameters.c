@@ -28,8 +28,8 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Part B force switches: set to 0 to turn off a contribution while keeping
     // the rest of the DPD force calculation active.
-    p_parameters->conservative_force_on = 1;
-    p_parameters->dissipative_random_force_on = 0;
+    p_parameters->conservative_force_on = 0;
+    p_parameters->dissipative_random_force_on = 1;
 
     p_parameters->a[0] = 25; // fixed a_ii: a-AA and a-BB
     p_parameters->a[1] = 25; // selectable a_ij: a-AB
@@ -76,11 +76,11 @@ void set_parameters(struct Parameters *p_parameters)
 
     // 1 fs expressed in internal simulation time units. Where time is equal to sqrt(3)
     
-    p_parameters->dt = 0.005;
+    p_parameters->dt = 0.04;
 
     // timesteps as given by the run requirements
 
-    p_parameters->num_dt_steps = 1600;
+    p_parameters->num_dt_steps = 20000;
     // -------------------------------------------------------------------------
     // Simulation box
     // -------------------------------------------------------------------------
@@ -107,7 +107,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Save thermodynamic output every n steps.
 
-    p_parameters->num_dt_output = 10;
+    p_parameters->num_dt_output = 100;
 
 
     // -------------------------------------------------------------------------
@@ -140,11 +140,11 @@ void set_parameters(struct Parameters *p_parameters)
     // -------------------------------------------------------------------------
 
     //Start from saved file (For B1 and B2) from scratch: 0, from restart file: 1
-    p_parameters->load_restart = 1;
+    p_parameters->load_restart = 0;
 
     strcpy(
         p_parameters->restart_in_filename,
-        "restart_files/restart_monomer_fluid.dat"
+        "restart_files/restart_ideal_gas.dat"
     );
 
 
@@ -158,34 +158,33 @@ void set_parameters(struct Parameters *p_parameters)
 
     strcpy(
         p_parameters->restart_out_filename,
-        "restart_files/restart_monomer_fluid.dat"
+        "restart_files/restart_ideal_gas.dat"
     );
 
 
     // -------------------------------------------------------------------------
-    // On-the-fly analysis (C1 and C2)
+    // On-the-fly analysis
     // -------------------------------------------------------------------------
     //
-    // analysis_on = 1 switches on the dihedral statistics (C1); msd_on = 1 also
-    // accumulates the mean-square displacement of the molecular centres of
-    // mass (C2). All intervals are in time steps (1 step = 1 fs).
-    //
-    // Output files: <filename_analysis>_hist2d.csv, _dwell.csv, _phi_trace.csv
-    // and (if msd_on) _msd.csv, written every num_dt_block steps and at the end.
+    // Velocity statistics skip the first 20% of the run and then sample every
+    // 100 steps. The output prefix reflects the conservative-force setting.
 
     p_parameters->reseed_velocities = 0;     // 0 = keep the velocities of the restart file
 
-    p_parameters->analysis_on = 0;
-    p_parameters->msd_on = 0;
+    p_parameters->analysis_on = 1;
+    p_parameters->velocity_analysis_on = 1;
+    p_parameters->num_dt_phi = 100;
+    p_parameters->num_dt_velocity = 100;
+    p_parameters->velocity_start_step = p_parameters->num_dt_steps / 5;
+    p_parameters->num_dt_msd = 10;
+    p_parameters->num_dt_msd_origin = 1000;
+    p_parameters->num_dt_block = 100000;
 
-    p_parameters->num_dt_phi = 100;          // dihedrals every 0.1 ps
-    p_parameters->num_dt_msd = 10;           // MSD sample every 10 fs
-    p_parameters->num_dt_msd_origin = 1000;  // new MSD time origin every 1 ps
-    p_parameters->num_dt_block = 100000;      // blocks of 10 ps
-
-    strcpy(
+    snprintf(
         p_parameters->filename_analysis,
-        "../data/c_prod_1"
+        sizeof(p_parameters->filename_analysis),
+        "data/B3_velocity_%s",
+        p_parameters->conservative_force_on ? "on" : "off"
     );
 
 

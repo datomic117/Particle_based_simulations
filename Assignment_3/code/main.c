@@ -87,6 +87,13 @@ int main(void)
     );
 
 
+    //Initialize the analysis if enabled
+    if (parameters.analysis_on == 1 || parameters.velocity_analysis_on == 1)
+    {
+        analysis_init(&parameters, &vectors, &analysis);
+    }
+
+
     // Check if a restart is required. A restart file stores only positions,
     // velocities and forces, so the types and the molecular topology are
     // reconstructed here just as in a fresh initialisation.
@@ -179,7 +186,7 @@ int main(void)
     // The last two columns are the temperatures calculated separately
     // for the CH3 and CH2 particle populations.
     fprintf(stdout,
-        "step,time,Epot,Ekin,Etot,T,T_CH3_K,T_CH2_K\n"
+        "step,time,Epot,Ekin,Etot\n"
     );
 
     
@@ -238,7 +245,7 @@ int main(void)
         );
 
         fprintf(stdout,
-                "%zu,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g\n",
+                "%zu,%.15g,%.15g,%.15g,%.15g\n",
                 step,
                 time,
                 Epot,
@@ -270,7 +277,7 @@ int main(void)
 
 
         // On-the-fly analysis: (analysis.c)
-        if (parameters.analysis_on == 1)
+        if (parameters.analysis_on == 1 || parameters.velocity_analysis_on == 1)
         {
             analysis_update(
                 &parameters,
@@ -288,7 +295,7 @@ int main(void)
     );
 
 
-    if (parameters.analysis_on == 1)
+    if (parameters.analysis_on == 1 || parameters.velocity_analysis_on == 1)
     {
         analysis_write(
             &parameters,

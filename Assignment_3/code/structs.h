@@ -199,11 +199,14 @@ struct Parameters
     double k_b;                         //!< Harmonic bond force constant
 
 
-    // On-the-fly analysis (C1 dihedral statistics, C2 mean-square displacement)
+    // On-the-fly analysis controls
     unsigned int reseed_velocities;     //!< if > 0, redraw the velocities with this random seed after loading a restart file (independent replicas)
-    char analysis_on;                   //!< if equal 1 the analysis of dihedrals (and MSD) runs
+    char analysis_on;                   //!< if equal 1 the structural RDF analysis runs
+    char velocity_analysis_on;          //!< if equal 1 sample the particle velocity distribution
     char msd_on;                        //!< if equal 1 the MSD of the molecular centres of mass is accumulated
     size_t num_dt_phi;                  //!< Number of time steps between dihedral samples
+    size_t num_dt_velocity;             //!< Number of time steps between velocity samples
+    size_t velocity_start_step;         //!< Skip initial equilibration steps before velocity sampling
     size_t num_dt_msd;                  //!< Number of time steps between MSD samples
     size_t num_dt_msd_origin;           //!< Number of time steps between MSD time origins
     size_t num_dt_block;                //!< Number of time steps per analysis block (error estimates)

@@ -17,9 +17,15 @@
 /// Number of radial bins used for g(r): floor(max_r / dr) with a small safety margin.
 #define RDF_BINS 60
 
+/// Number of bins in the normalized (v / sqrt(kT/m)) velocity-component histogram.
+#define VELOCITY_HIST_BINS 240
+/// Histogram range in units of sqrt(kT/m); values outside it are reported separately.
+#define VELOCITY_HIST_RANGE 8.0
+
 /**
  * @brief State of the on-the-fly analysis: C1 (dihedral statistics), C2
- * (mean-square displacement) and A3 (radial distribution function g(r)).
+ * (mean-square displacement), A3 (radial distribution function g(r)), and
+ * velocity-distribution statistics.
  */
 struct Analysis
 {
@@ -51,6 +57,16 @@ struct Analysis
     size_t rdf_samples;       //!< number of samples accumulated for g(r)
     size_t type_count[NUM_TYPES]; //!< current per-type counts for normalization of the RDF
     size_t rdf_counts[NUM_TYPES][NUM_TYPES][RDF_BINS]; //!< accumulated pair counts per type pair and radius bin
+
+    // Velocity-component statistics, sampled after the configured equilibration period.
+    size_t velocity_frames;
+    size_t velocity_samples[NUM_TYPES];
+    size_t velocity_hist[NUM_TYPES][VELOCITY_HIST_BINS];
+    size_t velocity_underflow[NUM_TYPES];
+    size_t velocity_overflow[NUM_TYPES];
+    size_t velocity_component_count[NUM_TYPES][3];
+    double velocity_component_mean[NUM_TYPES][3];
+    double velocity_component_m2[NUM_TYPES][3];
 };
 
 /**
@@ -63,9 +79,8 @@ struct Analysis
 void analysis_init(struct Parameters *p_parameters, struct Vectors *p_vectors, struct Analysis *p_analysis);
 
 /**
- * @brief Call once per step after update_positions: accumulates the unwrapped
- * displacement and, at the sampling intervals, updates the dihedral
- * histograms, the residence-time counters and the MSD.
+ * @brief Call once per step to accumulate enabled structural and velocity
+ * analyses at their configured sampling intervals.
  */
 void analysis_update(struct Parameters *p_parameters, struct Vectors *p_vectors, struct Analysis *p_analysis);
 

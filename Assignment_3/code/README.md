@@ -8,9 +8,9 @@ what the code does *now*. The report is `../A2.ipynb` (this folder is `code/` in
 ## Build and run
 
 ```
-gcc -O3 *.c -o md -lm                      # production
-gcc -g -Wall -Wextra *.c -o md_debug -lm   # debugging
-./md > run.csv                             # run from this folder
+gcc -O3 code/*.c -o md -lm                      # production; run from Assignment_3/
+gcc -g -Wall -Wextra code/*.c -o md_debug -lm   # debugging; run from Assignment_3/
+./md > run.csv
 ```
 
 
@@ -23,8 +23,20 @@ gcc -g -Wall -Wextra *.c -o md_debug -lm   # debugging
 
 
 ## How the data in `../data/` were made
+All of B1: Random & Dissipative force = 0, chain_length = 1
+B1_0005.csv: dt = 0.005 & num_steps = 1600
+B1_001.csv: dt = 0.01 & num_steps = 800
+B1_002.csv: dt = 0.02 & num_steps = 400
+B1_004.csv: dt = 0.04 & num_steps = 200
 
+All of B2: chain_length = 1, Conservative force = 1
+B2_ideal_gas.csv: dt = 0.04 & num_steps = 20000
+B2_rdf_ideal_gas.csv: dt = 0.04, num_steps = 20000 and analysis_on = 1
 
+All of B3: dt = 0.04, num_steps = 20000, all forces on
+B3_monomer_fluid.csv: see above
+B3_velocity_off_...: conservative forces off, velocity_analysis off
+B3_velocity_on_...: conservative forces on, velocity_analysis on
 
 ### C1/C2 production (`run_c.sh`)
 
@@ -36,19 +48,8 @@ gcc -g -Wall -Wextra *.c -o md_debug -lm   # debugging
 
 
 
-## Helper scripts (`tools/`)
-
-Run from inside `tools/`; they are not needed to build or run the simulation.
-
-- `check_b6.py`: closest interacting pair of the B6 start configuration, from `../b6_start.pdb`
-  (written by the B6 run; not kept in the zip).
-- `check_b7.py`: drift and transient statistics of `../../data/b7_nve.csv`.
-- `render_b6.py`: renders `b6_start.pdb` with OVITO's Python module into `../b6_render.png`.
-
 ## What was added to the course code
 
 
 
 ## Who did what
-
-
