@@ -29,7 +29,7 @@ void set_parameters(struct Parameters *p_parameters)
     // Part B force switches: set to 0 to turn off a contribution while keeping
     // the rest of the DPD force calculation active.
     p_parameters->conservative_force_on = 1;
-    p_parameters->dissipative_random_force_on = 1;
+    p_parameters->dissipative_random_force_on = 0;
 
     p_parameters->a[0] = 25; // fixed a_ii: a-AA and a-BB
     p_parameters->a[1] = 25; // selectable a_ij: a-AB
@@ -76,9 +76,11 @@ void set_parameters(struct Parameters *p_parameters)
 
     // 1 fs expressed in internal simulation time units. Where time is equal to sqrt(3)
     
-    p_parameters->dt = 0.04;
+    p_parameters->dt = 0.005;
 
+    // timesteps as given by the run requirements
 
+    p_parameters->num_dt_steps = 1600;
     // -------------------------------------------------------------------------
     // Simulation box
     // -------------------------------------------------------------------------
@@ -100,9 +102,7 @@ void set_parameters(struct Parameters *p_parameters)
     // Simulation length
     // -------------------------------------------------------------------------
 
-    // timesteps as given by the run requirements
-
-    p_parameters->num_dt_steps = 200;
+    
 
 
     // Save thermodynamic output every n steps.
