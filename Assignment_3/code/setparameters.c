@@ -76,7 +76,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // 1 fs expressed in internal simulation time units. Where time is equal to sqrt(3)
     
-    p_parameters->dt = 0.04*sqrt(3);
+    p_parameters->dt = 0.04;
 
 
     // -------------------------------------------------------------------------
