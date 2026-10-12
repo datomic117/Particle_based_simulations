@@ -8,7 +8,7 @@ what the code does *now*. The report is `../A2.ipynb` (this folder is `code/` in
 ## Build and run
 
 ```
-gcc -O3 code/*.c -o md -lm                      # production; run from Assignment_3/
+gcc -O3 code/*.c -o md -lm                      # production; run from  Assignment_3/
 gcc -g -Wall -Wextra code/*.c -o md_debug -lm   # debugging; run from Assignment_3/
 ./md > run.csv
 ```

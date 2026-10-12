@@ -161,10 +161,13 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
             // Dissipative + random force (disable together with the switch in setparameters.c)
             if (p_parameters->dissipative_random_force_on>0)
             {
-                // Random force
+                // DPD weight functions use the relative distance divided by the cutoff,
+                // and the random force is directed along the pair axis without an extra
+                // factor of r_ij. Together with sigma^2 = 2*gamma*kT this yields the
+                // correct Maxwell-Boltzmann equilibrium.
                 double wR = 1.0 - r_ij;
                 double zetadt = gauss() / sqrt(p_parameters->dt);
-                fr = v3_scl(p_parameters->sigma * wR * zetadt * r_ij, r_hat);
+                fr = v3_scl(p_parameters->sigma * wR * zetadt, r_hat);
 
                 // Dissipative force
                 v_ij = v3_sub(p_vectors->v[i], p_vectors->v[j]);

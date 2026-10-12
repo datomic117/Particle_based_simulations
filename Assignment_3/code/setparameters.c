@@ -12,10 +12,6 @@
 
 void set_parameters(struct Parameters *p_parameters)
 {
-    /// \todo Replace these demonstration values by the parameters of the n-pentane
-    /// force field: type-dependent masses and LJ parameters, the bond, angle and
-    /// dihedral parameters, and the thermostat relaxation time
-
     // -------------------------------------------------------------------------
     // Particle types and non-bonded force field
     // -------------------------------------------------------------------------
@@ -28,7 +24,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // Part B force switches: set to 0 to turn off a contribution while keeping
     // the rest of the DPD force calculation active.
-    p_parameters->conservative_force_on = 0;
+    p_parameters->conservative_force_on = 1;
     p_parameters->dissipative_random_force_on = 1;
 
     p_parameters->a[0] = 25; // fixed a_ii: a-AA and a-BB
@@ -102,13 +98,10 @@ void set_parameters(struct Parameters *p_parameters)
     // Simulation length
     // -------------------------------------------------------------------------
 
-    
-
 
     // Save thermodynamic output every n steps.
 
     p_parameters->num_dt_output = 100;
-
 
     // -------------------------------------------------------------------------
     // Non-bonded cutoff and neighbor list
@@ -117,7 +110,6 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->r_cut = 1;
 
     p_parameters->r_shell = 1;
-
 
     // -------------------------------------------------------------------------
     // PDB output
@@ -140,11 +132,11 @@ void set_parameters(struct Parameters *p_parameters)
     // -------------------------------------------------------------------------
 
     //Start from saved file (For B1 and B2) from scratch: 0, from restart file: 1
-    p_parameters->load_restart = 0;
+    p_parameters->load_restart = 1;
 
     strcpy(
         p_parameters->restart_in_filename,
-        "restart_files/restart_ideal_gas.dat"
+        "restart_files/restart_monomer_fluid.dat"
     );
 
 
@@ -158,7 +150,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     strcpy(
         p_parameters->restart_out_filename,
-        "restart_files/restart_ideal_gas.dat"
+        "restart_files/restart_monomer_fluid.dat"
     );
 
 
@@ -171,8 +163,8 @@ void set_parameters(struct Parameters *p_parameters)
 
     p_parameters->reseed_velocities = 0;     // 0 = keep the velocities of the restart file
 
-    p_parameters->analysis_on = 1;
-    p_parameters->velocity_analysis_on = 1;
+    p_parameters->analysis_on = 0;
+    p_parameters->velocity_analysis_on = 0;
     p_parameters->num_dt_phi = 100;
     p_parameters->num_dt_velocity = 100;
     p_parameters->velocity_start_step = p_parameters->num_dt_steps / 5;
