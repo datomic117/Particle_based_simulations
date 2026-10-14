@@ -91,7 +91,8 @@ int main(void)
     if (parameters.analysis_on == 1
         || parameters.velocity_analysis_on == 1
         || parameters.chain_size_analysis_on == 1
-        || parameters.composition_profile_on == 1)
+        || parameters.composition_profile_on == 1
+        || parameters.profile_on == 1)
     {
         analysis_init(&parameters, &vectors, &analysis);
     }
@@ -283,7 +284,8 @@ int main(void)
         if (parameters.analysis_on == 1
             || parameters.velocity_analysis_on == 1
             || parameters.chain_size_analysis_on == 1
-            || parameters.composition_profile_on == 1)
+            || parameters.composition_profile_on == 1
+            || parameters.profile_on == 1)
         {
             analysis_update(
                 &parameters,
@@ -304,7 +306,8 @@ int main(void)
     if (parameters.analysis_on == 1
         || parameters.velocity_analysis_on == 1
         || parameters.chain_size_analysis_on == 1
-        || parameters.composition_profile_on == 1)
+        || parameters.composition_profile_on == 1
+        || parameters.profile_on == 1)
     {
         analysis_write(
             &parameters,

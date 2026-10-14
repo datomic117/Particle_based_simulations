@@ -14,6 +14,19 @@ void analysis_init(struct Parameters *p, struct Vectors *v, struct Analysis *a)
     (void)v;
     a->step = 0;
     a->rdf_samples = 0;
+    a->rdf_block_samples = 0;
+    a->rdf_blocks_written = 0;
+    a->profile_samples = 0;
+    a->profile_blocks_written = 0;
+    a->fp_pressure = NULL;
+    for (size_t t = 0; t < NUM_TYPES; t++)
+    {
+        for (size_t b = 0; b < PROFILE_BINS_MAX; b++)
+            a->profile_counts[t][b] = 0;
+        for (size_t u = 0; u < NUM_TYPES; u++)
+            for (size_t b = 0; b < RDF_BINS; b++)
+                a->rdf_block_counts[t][u][b] = 0;
+    }
     a->velocity_frames = 0;
     a->chain_size_samples = 0;
     a->chain_end_to_end_sq_sum = 0.0;
@@ -130,12 +143,61 @@ static void sample_rdf(struct Parameters *p, struct Vectors *v, struct Analysis 
                     if (bin >= RDF_BINS)
                         bin = RDF_BINS - 1;
                     a->rdf_counts[ti][tj][bin]++;
+                    a->rdf_block_counts[ti][tj][bin]++;
                 }
             }
         }
     }
 
     a->rdf_samples++;
+    a->rdf_block_samples++;
+}
+
+// Number of x-bins of the composition profile and the bin width actually used
+static size_t profile_bins(struct Parameters *p, double *dx)
+{
+    size_t n = (size_t)(p->L.x / PROFILE_DX + 0.5);
+    if (n > PROFILE_BINS_MAX)
+        n = PROFILE_BINS_MAX;
+    *dx = p->L.x / (double)n;
+    return n;
+}
+
+// Add the current positions to the composition profile of this block
+static void sample_profile(struct Parameters *p, struct Vectors *v, struct Analysis *a)
+{
+    double dx;
+    size_t n = profile_bins(p, &dx);
+
+    for (size_t i = 0; i < p->num_part; i++)
+    {
+        size_t bin = (size_t)(v->r[i].x / dx);
+        if (bin >= n)
+            bin = n - 1;
+        a->profile_counts[v->type[i]][bin]++;
+    }
+    a->profile_samples++;
+}
+
+// Append the diagonal pressure tensor of this step: P_aa = (sum m v_a^2 + sum r_a F_a)/V
+static void sample_pressure(struct Parameters *p, struct Vectors *v, struct Analysis *a, double time)
+{
+    if (a->fp_pressure == NULL)
+    {
+        char name[1100];
+        snprintf(name, sizeof(name), "%s_pressure.csv", p->filename_analysis);
+        a->fp_pressure = fopen(name, "w");
+        if (a->fp_pressure == NULL)
+        {
+            fprintf(stderr, "cannot open analysis file '%s'\n", name);
+            return;
+        }
+        fprintf(a->fp_pressure, "step,time,Pxx,Pyy,Pzz\n");
+    }
+    fprintf(a->fp_pressure, "%zu,%.8g,%.10g,%.10g,%.10g\n", a->step, time,
+            v->press_kin_xyz.x + v->press_vir_xyz.x,
+            v->press_kin_xyz.y + v->press_vir_xyz.y,
+            v->press_kin_xyz.z + v->press_vir_xyz.z);
 }
 
 static void sample_velocity(struct Parameters *p, struct Vectors *v, struct Analysis *a)
@@ -306,12 +368,22 @@ static void write_composition_profile_block(struct Parameters *p, struct Analysi
     }
 }
 
+static void write_profile_block(struct Parameters *p, struct Analysis *a);
+static void write_rdf_block(struct Parameters *p, struct Analysis *a);
+
 void analysis_update(struct Parameters *p, struct Vectors *v, struct Analysis *a)
 {
     a->step++;
 
-    if (p->analysis_on && p->num_dt_phi > 0 && a->step % p->num_dt_phi == 0)
+    if (p->analysis_on && p->num_dt_phi > 0 && a->step >= p->analysis_start_step
+        && a->step % p->num_dt_phi == 0)
         sample_rdf(p, v, a);
+
+    if (p->profile_on && p->num_dt_profile > 0 && a->step % p->num_dt_profile == 0)
+        sample_profile(p, v, a);
+
+    if (p->profile_on && p->num_dt_pressure > 0 && a->step % p->num_dt_pressure == 0)
+        sample_pressure(p, v, a, (double)a->step * p->dt);
 
     if (p->velocity_analysis_on
         && p->num_dt_velocity > 0
@@ -335,7 +407,11 @@ void analysis_update(struct Parameters *p, struct Vectors *v, struct Analysis *a
     }
 
     if (p->num_dt_block > 0 && a->step % p->num_dt_block == 0)
+    {
         analysis_write(p, a);
+        write_profile_block(p, a);
+        write_rdf_block(p, a);
+    }
 }
 
 static FILE *open_file(struct Parameters *p, const char *suffix)
@@ -447,6 +523,78 @@ static void write_velocity_histogram(struct Parameters *p, struct Analysis *a)
     fclose(fp);
 }
 
+// Append the block-averaged number densities rho_A(x), rho_B(x) of the block that just ended
+static void write_profile_block(struct Parameters *p, struct Analysis *a)
+{
+    if (!p->profile_on || a->profile_samples == 0)
+        return;
+
+    char name[1100];
+    snprintf(name, sizeof(name), "%s_profile.csv", p->filename_analysis);
+    FILE *fp = fopen(name, a->profile_blocks_written == 0 ? "w" : "a");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "cannot open analysis file '%s'\n", name);
+        return;
+    }
+    if (a->profile_blocks_written == 0)
+        fprintf(fp, "block,step_end,x,rho_A,rho_B\n");
+
+    double dx;
+    size_t n = profile_bins(p, &dx);
+    double slab = dx * p->L.y * p->L.z;
+    for (size_t b = 0; b < n; b++)
+    {
+        fprintf(fp, "%zu,%zu,%.6f,%.6f,%.6f\n", a->profile_blocks_written, a->step, (b + 0.5) * dx,
+                (double)a->profile_counts[0][b] / ((double)a->profile_samples * slab),
+                (double)a->profile_counts[1][b] / ((double)a->profile_samples * slab));
+        a->profile_counts[0][b] = 0;
+        a->profile_counts[1][b] = 0;
+    }
+    fclose(fp);
+    a->profile_blocks_written++;
+    a->profile_samples = 0;
+}
+
+// Append the g(r) of the block that just ended (same normalisation as the cumulative g(r))
+static void write_rdf_block(struct Parameters *p, struct Analysis *a)
+{
+    if (!p->analysis_on || a->rdf_block_samples == 0)
+        return;
+
+    char name[1100];
+    snprintf(name, sizeof(name), "%s_rdf_blocks.csv", p->filename_analysis);
+    FILE *fp = fopen(name, a->rdf_blocks_written == 0 ? "w" : "a");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "cannot open analysis file '%s'\n", name);
+        return;
+    }
+    if (a->rdf_blocks_written == 0)
+        fprintf(fp, "block,pair,r_min,r_max,g_r\n");
+
+    for (int ti = 0; ti < NUM_TYPES; ti++)
+    {
+        for (int tj = ti; tj < NUM_TYPES; tj++)
+        {
+            const char *pair_name = ti == 0 ? (tj == 0 ? "AA" : "AB") : "BB";
+            for (int b = 0; b < RDF_BINS; b++)
+            {
+                double r_lo = (double)b * RDF_DR;
+                double expected = expected_pair_count(a, p, ti, tj, r_lo, r_lo + RDF_DR);
+                double g = expected > 0.0
+                    ? (double)a->rdf_block_counts[ti][tj][b] / ((double)a->rdf_block_samples * expected)
+                    : 0.0;
+                fprintf(fp, "%zu,%s,%.3f,%.3f,%.8f\n", a->rdf_blocks_written, pair_name, r_lo, r_lo + RDF_DR, g);
+                a->rdf_block_counts[ti][tj][b] = 0;
+            }
+        }
+    }
+    fclose(fp);
+    a->rdf_blocks_written++;
+    a->rdf_block_samples = 0;
+}
+
 void analysis_write(struct Parameters *p, struct Analysis *a)
 {
     if (p->composition_profile_on)
@@ -515,4 +663,8 @@ void analysis_free(struct Analysis *a)
     free(a->composition_count_b);
     a->composition_count_a = NULL;
     a->composition_count_b = NULL;
+
+    if (a->fp_pressure != NULL)
+        fclose(a->fp_pressure);
+    a->fp_pressure = NULL;
 }

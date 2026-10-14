@@ -22,6 +22,7 @@ double calculate_forces(struct Parameters *p_parameters, struct Nbrlist *p_nbrli
     // Initialize the virial accumulators; each force routine adds its f.r contributions
     p_vectors->press_vir_bnd = 0.0;
     p_vectors->press_vir_nb = 0.0;
+    p_vectors->press_vir_xyz = (struct Vec3D){0.0, 0.0, 0.0};
 
     // Calculate the forces and accumulate the potential energy from each type of interaction
     double Epot = 0.0;
@@ -33,6 +34,7 @@ double calculate_forces(struct Parameters *p_parameters, struct Nbrlist *p_nbrli
     double V = p_parameters->L.x * p_parameters->L.y * p_parameters->L.z;
     p_vectors->press_vir_bnd /= (3.0 * V);
     p_vectors->press_vir_nb /= (3.0 * V);
+    p_vectors->press_vir_xyz = v3_scl(1.0 / V, p_vectors->press_vir_xyz);
 
     return Epot;
 }
@@ -92,6 +94,9 @@ double calculate_forces_bond(struct Parameters *p_parameters, struct Vectors *p_
         //
         // W = F_ij . r_ij
         p_vectors->press_vir_bnd += v3_dot(fi, rij);
+        p_vectors->press_vir_xyz.x += fi.x * rij.x;
+        p_vectors->press_vir_xyz.y += fi.y * rij.y;
+        p_vectors->press_vir_xyz.z += fi.z * rij.z;
 
         // Newton's third law: particle j receives the opposite force
         f[i] = v3_add(f[i], fi);
@@ -155,6 +160,9 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
                 Epot += 0.5 * a_ij * r_cut * wC * wC;
 
                 p_vectors->press_vir_nb += v3_dot(fc, rij.v);
+                p_vectors->press_vir_xyz.x += fc.x * rij.v.x;
+                p_vectors->press_vir_xyz.y += fc.y * rij.v.y;
+                p_vectors->press_vir_xyz.z += fc.z * rij.v.z;
                 ft = v3_add(ft, fc);
             }
 

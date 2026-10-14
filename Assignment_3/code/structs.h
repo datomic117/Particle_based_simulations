@@ -217,6 +217,10 @@ struct Parameters
     size_t num_dt_msd;                  //!< Number of time steps between MSD samples
     size_t num_dt_msd_origin;           //!< Number of time steps between MSD time origins
     size_t num_dt_block;                //!< Number of time steps per analysis block (error estimates)
+    size_t analysis_start_step;         //!< g(r) is only sampled from this step on (skips equilibration)
+    char profile_on;                    //!< if equal 1 the composition profile along x and the pressure tensor are recorded
+    size_t num_dt_profile;              //!< Number of time steps between composition profile samples
+    size_t num_dt_pressure;             //!< Number of time steps between pressure tensor samples
     char filename_analysis[1024];       //!< prefix of the analysis output files
 };
 
@@ -307,6 +311,11 @@ struct Vectors
     double press_kin;           //!< kinetic (ideal-gas) contribution to the pressure, set in @ref update_velocities_half_dt
     double press_vir_nb;        //!< non-bonded virial contribution to the pressure, set in @ref calculate_forces
     double press_vir_bnd;       //!< bonded (bond + angle + dihedral) virial contribution to the pressure, set in @ref calculate_forces
+
+    // C4: diagonal components of the pressure tensor, P_aa = (kinetic + virial)/V.
+    // The virial uses the conservative and spring forces only (Eq. 15).
+    struct Vec3D press_kin_xyz; //!< sum(m v_a^2)/V per axis, set in @ref update_velocities_half_dt
+    struct Vec3D press_vir_xyz; //!< sum(r_ij,a F_ij,a)/V per axis (non-bonded + bonded), set in @ref calculate_forces
 };
 
 /**

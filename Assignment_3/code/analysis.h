@@ -2,6 +2,7 @@
 #define ANALYSIS_H_
 
 #include <stddef.h>
+#include <stdio.h>
 #include "structs.h"
 
 /// Number of bins per dihedral axis in the joint (phi1, phi2) histogram (5 degrees each).
@@ -16,6 +17,10 @@
 #define RDF_MAX_R 3.0
 /// Number of radial bins used for g(r): floor(max_r / dr) with a small safety margin.
 #define RDF_BINS 60
+
+/// Bin width of the composition profile along x (C2/C3), and the maximum number of bins.
+#define PROFILE_DX 0.25
+#define PROFILE_BINS_MAX 256
 
 /// Number of bins in the normalized (v / sqrt(kT/m)) velocity-component histogram.
 #define VELOCITY_HIST_BINS 240
@@ -70,6 +75,19 @@ struct Analysis
     size_t rdf_samples;       //!< number of samples accumulated for g(r)
     size_t type_count[NUM_TYPES]; //!< current per-type counts for normalization of the RDF
     size_t rdf_counts[NUM_TYPES][NUM_TYPES][RDF_BINS]; //!< accumulated pair counts per type pair and radius bin
+
+    // Per-block g(r): the same pair counts, but reset at the end of every block (C1 convergence)
+    size_t rdf_block_samples;
+    size_t rdf_blocks_written;
+    size_t rdf_block_counts[NUM_TYPES][NUM_TYPES][RDF_BINS];
+
+    // C2/C3: composition profile along x, per block of num_dt_block steps
+    size_t profile_samples;                    //!< profile samples in the current block
+    size_t profile_blocks_written;             //!< blocks written so far
+    size_t profile_counts[NUM_TYPES][PROFILE_BINS_MAX]; //!< bead counts per type and x-bin in the current block
+
+    // C4: time series of the diagonal pressure tensor
+    FILE *fp_pressure;                         //!< open on the first sample, closed in analysis_free
 
     // Velocity-component statistics, sampled after the configured equilibration period.
     size_t velocity_frames;

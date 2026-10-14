@@ -38,6 +38,7 @@ void update_positions(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist
 double update_velocities_half_dt(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist, struct Vectors *p_vectors)
 {
     double Ekin = 0.0;  // Initialize kinetic energy
+    struct Vec3D mv2 = {0.0, 0.0, 0.0};  // sum(m v_a^2) per axis, for the pressure tensor
     (void)p_nbrlist;    // the neighbor list is not needed here
     double dt_hlf = p_parameters->dt * 0.5;  // Half time step
     struct Vec3D *v = p_vectors->v;  // Particle velocities
@@ -65,11 +66,15 @@ double update_velocities_half_dt(struct Parameters *p_parameters, struct Nbrlist
         // Kinetic energy of particle i:
         // Ekin_i = 1/2 m_i v_i^2
         Ekin += (0.5 * m) * v3_dot(v[i], v[i]);
+        mv2.x += m * v[i].x * v[i].x;
+        mv2.y += m * v[i].y * v[i].y;
+        mv2.z += m * v[i].z * v[i].z;
     }
 
     // Kinetic (ideal-gas) contribution to the pressure: sum(m v^2)/(3V) = 2 Ekin/(3V)
     double V = p_parameters->L.x * p_parameters->L.y * p_parameters->L.z;
     p_vectors->press_kin = 2.0 * Ekin / (3.0 * V);
+    p_vectors->press_kin_xyz = v3_scl(1.0 / V, mv2);
 
     return Ekin;  // Return the system's kinetic energy
 }
