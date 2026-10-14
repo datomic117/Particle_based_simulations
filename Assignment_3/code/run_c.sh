@@ -7,6 +7,7 @@
 # Output goes to data/<run>_*.csv, restart files to restart_files/<run>.dat.
 set -e
 
+# C-runs are named C<task>_a<a_AB>; the chain runs of D3 are D3_N<N>_da<Delta a>, e.g. RUNS="D3_N5_da3.5"
 RUNS=${RUNS:-"C1_a25 C2_a37 C3_a35 C3_a39 C3_a43 C3_a47 C4_a25"}
 STEPS=${STEPS:-60000}
 BLOCK=${BLOCK:-5000}   # steps per profile/g(r) block
@@ -20,8 +21,9 @@ for a in sys.argv[2:]:
     k, v = a.split('=', 1)
     if k.startswith('s:'):
         k = k[2:]
-        pat = re.compile(r'(strcpy\(\s*p_parameters->%s,\s*)"[^"]*"' % re.escape(k))
-        s, n = pat.subn(lambda m: m.group(1) + '"' + v + '"', s, count=1)
+        # the file names are set with strcpy(...) or snprintf(...): replace either call by a strcpy
+        pat = re.compile(r'(?:strcpy|snprintf)\(\s*p_parameters->%s\s*,.*?\);' % re.escape(k), re.S)
+        s, n = pat.subn(lambda m: 'strcpy(p_parameters->%s, "%s");' % (k, v), s, count=1)
     elif k == 'L':   # box: "Lx,Ly,Lz"
         pat = re.compile(r'p_parameters->L\s*=\s*\(struct Vec3D\)\{[^}]*\};')
         s, n = pat.subn(lambda m: 'p_parameters->L = (struct Vec3D){%s};' % v, s, count=1)
@@ -54,6 +56,10 @@ mkdir -p build_c data restart_files
 for run in $RUNS; do
     aab=${run##*_a}
     case $run in
+        D3_*)   # chain demixing: chain length N and Delta a from the run name, a_AB = 25 + Delta a
+            n=${run#D3_N}; n=${n%%_da*}; da=${run##*_da}
+            aab=$(python -c "print(25 + $da)")
+            build $run $aab 1 "20,10,10" $STEPS profile_on=1 num_dt_block=$BLOCK num_dt_pressure=0 chain_length=$n ;;
         C1_*)   # monomer fluid: cubic box, g(r) after 4000 steps of equilibration, blocks of 4000 steps
             build $run $aab 0 "10,10,10" 20000 analysis_on=1 num_dt_phi=20 analysis_start_step=4000 num_dt_block=4000 ;;
         C2_*)   # Fig. 6: snapshots every 10000 steps to follow the demixing
