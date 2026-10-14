@@ -204,9 +204,16 @@ struct Parameters
     char analysis_on;                   //!< if equal 1 the structural RDF analysis runs
     char velocity_analysis_on;          //!< if equal 1 sample the particle velocity distribution
     char msd_on;                        //!< if equal 1 the MSD of the molecular centres of mass is accumulated
+    char chain_size_analysis_on;        //!< if equal 1 sample chain mean-square end-to-end distance
+    char composition_profile_on;        //!< if equal 1 write block-averaged A/B profiles along x
     size_t num_dt_phi;                  //!< Number of time steps between dihedral samples
     size_t num_dt_velocity;             //!< Number of time steps between velocity samples
     size_t velocity_start_step;         //!< Skip initial equilibration steps before velocity sampling
+    size_t num_dt_chain_size;           //!< Number of time steps between chain-size samples
+    size_t chain_size_start_step;       //!< Skip initial equilibration steps before chain-size sampling
+    size_t num_dt_composition;          //!< Steps between composition-profile samples
+    size_t num_dt_composition_block;    //!< Steps between composition-profile block writes
+    double composition_bin_width;       //!< Width of x slabs used for the composition profile
     size_t num_dt_msd;                  //!< Number of time steps between MSD samples
     size_t num_dt_msd_origin;           //!< Number of time steps between MSD time origins
     size_t num_dt_block;                //!< Number of time steps per analysis block (error estimates)

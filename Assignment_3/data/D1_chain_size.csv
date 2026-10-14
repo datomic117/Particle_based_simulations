@@ -1,0 +1,2 @@
+chains,chain_length,samples,mean_square_end_to_end,ideal_chain_mean_square
+600,5,96600,6.75107758016,6

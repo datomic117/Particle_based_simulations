@@ -41,6 +41,7 @@
 *.su
 *.idb
 *.pdb
+!Assignment_3/data/D1_chain_snapshot.pdb
 
 # Kernel Module Compile Results
 *.mod*

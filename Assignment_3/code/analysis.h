@@ -33,6 +33,19 @@ struct Analysis
     size_t step;              //!< steps since the analysis was started
     size_t num_blocks;        //!< number of blocks allocated
 
+    // D1: mean-square end-to-end distance averaged over chains and sampled frames
+    size_t chain_size_samples;
+    double chain_end_to_end_sq_sum;
+
+    // C2/D2: A/B composition profile accumulated and written one block at a time
+    size_t composition_profile_bins;
+    size_t composition_block_index;
+    size_t composition_block_samples;
+    size_t composition_block_start_step;
+    size_t composition_block_end_step;
+    size_t *composition_count_a;
+    size_t *composition_count_b;
+
     // C1: dihedral statistics, per block of num_dt_block steps
     size_t *hist;             //!< [block][PHI_BINS][PHI_BINS] counts of (phi1, phi2)
     int *prev_state;          //!< [2 * num_mol] last state (0 trans, 1 gauche, -1 unknown) of each dihedral

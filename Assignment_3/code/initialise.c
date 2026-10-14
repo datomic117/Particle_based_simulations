@@ -179,7 +179,7 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
 
     size_t num_molecules = p_parameters->num_part / c_l;
     size_t max_attempts = 100000;
-    double min_separation = 0.5 * r_eq + 0.002;
+    double min_separation = 0.4 * r_eq;
     double min_separation_sq = min_separation * min_separation;
     double two_pi = 2.0 * acos(-1.0);
     struct Vec3D *candidate = malloc(c_l * sizeof(*candidate));

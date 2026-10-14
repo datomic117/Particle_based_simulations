@@ -43,9 +43,20 @@ void record_trajectories_pdb(int reset, struct Parameters *p_parameters, struct 
       part_type = "X";
     }
     
-    fprintf(fp_traj, "HETATM%5u  %s   UNK A   1    %8.3f%8.3f%8.3f  1.00  0.00           %s\n", (unsigned int)i % 100000, atom_name, rs*p_vectors->r[i].x, rs*p_vectors->r[i].y, rs*p_vectors->r[i].z,part_type);
+      unsigned int serial = (unsigned int)(i % 99999) + 1;
+      unsigned int residue = (unsigned int)(i / (size_t)p_parameters->chain_length) + 1;
+      fprintf(fp_traj, "HETATM%5u  %s   UNK A%4u    %8.3f%8.3f%8.3f  1.00  0.00           %s\n",
+              serial, atom_name, residue, rs*p_vectors->r[i].x,
+              rs*p_vectors->r[i].y, rs*p_vectors->r[i].z, part_type);
     }
-  
+
+    for (size_t bond = 0; bond < p_vectors->num_bonds; bond++)
+    {
+      unsigned int serial_i = (unsigned int)(p_vectors->bonds[bond].i % 99999) + 1;
+      unsigned int serial_j = (unsigned int)(p_vectors->bonds[bond].j % 99999) + 1;
+      fprintf(fp_traj, "CONECT%5u%5u\n", serial_i, serial_j);
+    }
+
   fprintf(fp_traj, "ENDMDL\n");
 
   fclose(fp_traj);

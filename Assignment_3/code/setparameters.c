@@ -28,10 +28,10 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->dissipative_random_force_on = 1;
 
     p_parameters->a[0] = 25; // fixed a_ii: a-AA and a-BB
-    p_parameters->a[1] = 25; // selectable a_ij: a-AB
+    p_parameters->a[1] = 28; // selectable a_ij: a-AB
 
-    p_parameters->chain_length = 1; // chain length
-    p_parameters->demix_initialisation = 0; //set to 0 for normal initialisation, 1 for demixed initialisation
+    p_parameters->chain_length = 3; // chain length
+    p_parameters->demix_initialisation = 1; //set to 0 for normal initialisation, 1 for demixed initialisation
 
     // -------------------------------------------------------------------------
     // Target temperature
@@ -76,7 +76,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     // timesteps as given by the run requirements
 
-    p_parameters->num_dt_steps = 20000;
+    p_parameters->num_dt_steps = 60000;
     // -------------------------------------------------------------------------
     // Simulation box
     // -------------------------------------------------------------------------
@@ -85,7 +85,7 @@ void set_parameters(struct Parameters *p_parameters)
 
     p_parameters->L =
         (struct Vec3D){
-            10,
+            20,
             10,
             10
         };
@@ -119,9 +119,11 @@ void set_parameters(struct Parameters *p_parameters)
 
     p_parameters->num_dt_pdb = 1000;
 
-    strcpy(
+    snprintf(
         p_parameters->filename_pdb,
-        "c_pdb_prod_1"
+        sizeof(p_parameters->filename_pdb),
+        "data/D2_N%.0f",
+        p_parameters->chain_length
     );
 
     p_parameters->rescale_output = 1;
@@ -132,11 +134,13 @@ void set_parameters(struct Parameters *p_parameters)
     // -------------------------------------------------------------------------
 
     //Start from saved file (For B1 and B2) from scratch: 0, from restart file: 1
-    p_parameters->load_restart = 1;
+    p_parameters->load_restart = 0;
 
-    strcpy(
+    snprintf(
         p_parameters->restart_in_filename,
-        "restart_files/restart_monomer_fluid.dat"
+        sizeof(p_parameters->restart_in_filename),
+        "restart_files/restart_D2_N%.0f.dat",
+        p_parameters->chain_length
     );
 
 
@@ -148,9 +152,11 @@ void set_parameters(struct Parameters *p_parameters)
 
     p_parameters->num_dt_restart = 1000;
 
-    strcpy(
+    snprintf(
         p_parameters->restart_out_filename,
-        "restart_files/restart_monomer_fluid.dat"
+        sizeof(p_parameters->restart_out_filename),
+        "restart_files/restart_D2_N%.0f.dat",
+        p_parameters->chain_length
     );
 
 
@@ -165,19 +171,38 @@ void set_parameters(struct Parameters *p_parameters)
 
     p_parameters->analysis_on = 0;
     p_parameters->velocity_analysis_on = 0;
+    p_parameters->chain_size_analysis_on = 0;
+    p_parameters->composition_profile_on = 1;
     p_parameters->num_dt_phi = 100;
     p_parameters->num_dt_velocity = 100;
     p_parameters->velocity_start_step = p_parameters->num_dt_steps / 5;
+    p_parameters->num_dt_chain_size = 100;
+    p_parameters->chain_size_start_step = p_parameters->num_dt_steps / 5;
+    p_parameters->num_dt_composition = 100;
+    p_parameters->num_dt_composition_block = 5000;
+    p_parameters->composition_bin_width = 0.25;
     p_parameters->num_dt_msd = 10;
     p_parameters->num_dt_msd_origin = 1000;
     p_parameters->num_dt_block = 100000;
 
-    snprintf(
-        p_parameters->filename_analysis,
-        sizeof(p_parameters->filename_analysis),
-        "data/B3_velocity_%s",
-        p_parameters->conservative_force_on ? "on" : "off"
-    );
+    if (p_parameters->composition_profile_on)
+    {
+        snprintf(
+            p_parameters->filename_analysis,
+            sizeof(p_parameters->filename_analysis),
+            "data/D2_N%.0f",
+            p_parameters->chain_length
+        );
+    }
+    else
+    {
+        snprintf(
+            p_parameters->filename_analysis,
+            sizeof(p_parameters->filename_analysis),
+            "data/B3_velocity_%s",
+            p_parameters->conservative_force_on ? "on" : "off"
+        );
+    }
 
 
     // -------------------------------------------------------------------------
