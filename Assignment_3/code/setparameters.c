@@ -172,6 +172,14 @@ void set_parameters(struct Parameters *p_parameters)
     p_parameters->num_dt_msd_origin = 1000;
     p_parameters->num_dt_block = 100000;
 
+    // Part C: g(r) is only sampled after analysis_start_step. profile_on records the
+    // composition profile along x (averaged per block of num_dt_block steps) and the
+    // diagonal pressure tensor (one line every num_dt_pressure steps).
+    p_parameters->analysis_start_step = 0;
+    p_parameters->profile_on = 0;
+    p_parameters->num_dt_profile = 10;
+    p_parameters->num_dt_pressure = 10;
+
     snprintf(
         p_parameters->filename_analysis,
         sizeof(p_parameters->filename_analysis),

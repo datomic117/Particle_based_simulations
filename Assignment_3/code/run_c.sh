@@ -1,61 +1,73 @@
 #!/bin/bash
-# C1/C2 production runs: NREP independent replicas, each an NVT equilibration
-# (Berendsen, tau = 1 ps) followed by an NVE production run, all in parallel.
-# Run from this directory (code/) with gcc on the PATH:   bash run_c.sh
+# Part C production runs (C1 g(r), C2/C3/C4 demixing and surface tension).
+# Run from the Assignment_3 directory with gcc on the PATH:   bash code/run_c.sh
 #
-# Run configuration lives in setparameters.c only, so every binary is built
-# from a patched copy of it (setparameters.c itself is restored afterwards).
+# All run settings live in setparameters.c, so every run is built from a patched
+# copy of the sources in build_c/<run>/ (code/setparameters.c itself is untouched).
+# Output goes to data/<run>_*.csv, restart files to restart_files/<run>.dat.
 set -e
 
-NREP=${NREP:-5}
-EQUIL_STEPS=${EQUIL_STEPS:-200000}   # 200 ps at 1 fs
-PROD_STEPS=${PROD_STEPS:-400000}     # 400 ps at 1 fs per replica
-TAU_1PS=0.9118                       # 1 ps in internal time units
+RUNS=${RUNS:-"C1_a25 C2_a37 C3_a35 C3_a39 C3_a43 C3_a47 C4_a25"}
+STEPS=${STEPS:-60000}
+BLOCK=${BLOCK:-5000}   # steps per profile/g(r) block
 
-cp setparameters.c setparameters.c.orig
-
-patch_param () {   # patch_param key value   |   patch_param s:key text
+patch_param () {   # patch_param <file> key=value ...   (s:key=text for strcpy strings)
     python - "$@" <<'PY'
 import re, sys
-s = open('setparameters.c', encoding='utf8', newline='').read()
-for a in sys.argv[1:]:
+f = sys.argv[1]
+s = open(f, encoding='utf8', newline='').read()
+for a in sys.argv[2:]:
     k, v = a.split('=', 1)
     if k.startswith('s:'):
         k = k[2:]
-        pat = re.compile(r'(strcpy\(\s*p_parameters->%s,\s*)"[^"]*"' % k)
+        pat = re.compile(r'(strcpy\(\s*p_parameters->%s,\s*)"[^"]*"' % re.escape(k))
         s, n = pat.subn(lambda m: m.group(1) + '"' + v + '"', s, count=1)
+    elif k == 'L':   # box: "Lx,Ly,Lz"
+        pat = re.compile(r'p_parameters->L\s*=\s*\(struct Vec3D\)\{[^}]*\};')
+        s, n = pat.subn(lambda m: 'p_parameters->L = (struct Vec3D){%s};' % v, s, count=1)
+    elif k == 'filename_analysis':
+        pat = re.compile(r'snprintf\(\s*p_parameters->filename_analysis.*?\);', re.S)
+        s, n = pat.subn(lambda m: 'strcpy(p_parameters->filename_analysis, "%s");' % v, s, count=1)
     else:
-        pat = re.compile(r'(p_parameters->%s\s*=\s*)[^;]*;' % k)
+        pat = re.compile(r'(p_parameters->%s\s*=\s*)[^;]*;' % re.escape(k))
         s, n = pat.subn(lambda m: m.group(1) + v + ';', s, count=1)
     assert n == 1, k
-open('setparameters.c', 'w', encoding='utf8', newline='').write(s)
+open(f, 'w', encoding='utf8', newline='').write(s)
 PY
 }
 
-for k in $(seq 1 $NREP); do
-    # Equilibration: new velocities per replica, thermostat on, dihedral statistics in 10 ps blocks
-    cp setparameters.c.orig setparameters.c
-    patch_param load_restart=1 reseed_velocities=$((100 + k)) is_NVT=1 tau_T=$TAU_1PS \
-        num_dt_steps=$EQUIL_STEPS num_dt_output=100 num_dt_pdb=100000000 num_dt_restart=$EQUIL_STEPS \
-        analysis_on=1 msd_on=0 num_dt_block=10000 \
-        s:filename_pdb=c_pdb_equil_$k s:restart_in_filename=restart_files/restart_b9_tau001.dat \
-        s:restart_out_filename=restart_files/restart_c_equil_$k.dat s:filename_analysis=../data/c_equil_$k
-    gcc -O3 *.c -o md_equil_$k -lm
+build () {   # build <run> <a_AB> <demix> <box> <steps> <extra patches...>
+    local run=$1 aab=$2 demix=$3 box=$4 steps=$5; shift 5
+    local dir=build_c/$run
+    mkdir -p $dir
+    cp code/*.c code/*.h $dir/
+    patch_param $dir/setparameters.c "a[1]=$aab" demix_initialisation=$demix "L=$box" \
+        load_restart=0 r_shell=0.4 chain_length=1 conservative_force_on=1 dissipative_random_force_on=1 \
+        num_dt_steps=$steps num_dt_pdb=$steps num_dt_restart=$steps \
+        s:filename_pdb=data/${run}_traj s:restart_out_filename=restart_files/${run}.dat \
+        filename_analysis=data/${run} "$@"
+    gcc -O3 $dir/*.c -o $dir/dpd -lm
+}
 
-    # Production: NVE from the equilibrated state, dihedral statistics and MSD in 100 ps blocks
-    cp setparameters.c.orig setparameters.c
-    patch_param load_restart=1 reseed_velocities=0 is_NVT=0 \
-        num_dt_steps=$PROD_STEPS num_dt_output=100 num_dt_pdb=100000000 num_dt_restart=$PROD_STEPS \
-        analysis_on=1 msd_on=1 num_dt_block=100000 \
-        s:filename_pdb=c_pdb_prod_$k s:restart_in_filename=restart_files/restart_c_equil_$k.dat \
-        s:restart_out_filename=restart_files/restart_c_prod_$k.dat s:filename_analysis=../data/c_prod_$k
-    gcc -O3 *.c -o md_prod_$k -lm
+mkdir -p build_c data restart_files
+
+for run in $RUNS; do
+    aab=${run##*_a}
+    case $run in
+        C1_*)   # monomer fluid: cubic box, g(r) after 4000 steps of equilibration, blocks of 4000 steps
+            build $run $aab 0 "10,10,10" 20000 analysis_on=1 num_dt_phi=20 analysis_start_step=4000 num_dt_block=4000 ;;
+        C2_*)   # Fig. 6: snapshots every 10000 steps to follow the demixing
+            build $run $aab 1 "20,10,10" $STEPS profile_on=1 num_dt_block=$BLOCK num_dt_pdb=10000 ;;
+        *)      # C3/C4 series and the control
+            build $run $aab 1 "20,10,10" $STEPS profile_on=1 num_dt_block=$BLOCK ;;
+    esac
+    # (num_part = rho * Lx*Ly*Lz is computed in setparameters.c from L)
 done
-mv setparameters.c.orig setparameters.c
 
-for k in $(seq 1 $NREP); do
-    ( ./md_equil_$k > ../data/c_equil_$k.csv && ./md_prod_$k > ../data/c_prod_$k.csv ) &
+for run in $RUNS; do
+    ( start=$(date +%s)
+      ./build_c/$run/dpd | awk 'NR==1 || NR%50==0' > data/${run}_energy.csv
+      echo "$run finished in $(( $(date +%s) - start )) s" ) &
 done
 wait
-rm -f md_equil_* md_prod_* c_pdb_*.pdb
-echo "all replicas finished"
+echo "all runs finished"
