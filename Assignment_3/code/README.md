@@ -55,6 +55,8 @@ $\gamma = 4.5$, $\sigma = \sqrt{2\gamma k_BT}$, $\Delta t = 0.04$, spring $C = 2
 | `fileoutput.c/.h`, `memory.c/.h`, `random.c/.h`, `structs.h`, `constants.h` | PDB and restart files, allocation, uniform random numbers in $[-\sqrt3, \sqrt3]$ (`gauss`, mean 0 and variance 1), data structures |
 | `force_test.c/.h` | finite-difference force and virial test (switch `force_test`; valid for the conservative force and the springs with the dissipative and random force off) |
 | `run_c.sh` | script for the Part C and D3 production runs, see above |
+| `run_b1.sh` | script for the B1 energy-conservation runs (conservative force only, four time steps, starts from the end state of C1) |
+| `render_ovito.py` | renders the OVITO snapshot of a trajectory (C2); needs `pip install ovito`: `python code/render_ovito.py data/C2_a37_traj.pdb data/C2_ovito_snapshot.png` |
 
 ## Switches in `setparameters.c`
 
@@ -91,12 +93,12 @@ over the whole periodic box, two interfaces), computed in the notebook from `_pr
 
 | data | settings |
 |---|---|
-| `B1_004.csv`, `B1_002.csv`, `B1_001.csv`, `B1_0005.csv` | dissipative and random force off, $N = 1$, $a_{AA} = a_{AB} = 25$, box $10^3$ (3000 beads), start from `restart_files/restart_monomer_fluid.dat`; $\Delta t$ = 0.04 / 0.02 / 0.01 / 0.005 with 200 / 400 / 800 / 1600 steps (all to $t = 8$) |
+| `B1_004.csv`, `B1_002.csv`, `B1_001.csv`, `B1_0005.csv` | `bash code/run_b1.sh` (after the C1 run): dissipative and random force off, $N = 1$, $a_{AA} = a_{AB} = 25$, box $10^3$ (3000 beads), start from the end state of the C1 run (`restart_files/C1_a25.dat`, thermostatted at $k_BT = 1$); $\Delta t$ = 0.04 / 0.02 / 0.01 / 0.005 with 200 / 400 / 800 / 1600 steps (all to $t = 8$). Columns: step, time, Epot, Ekin, Etot |
 | `B2_ideal_gas.csv`, `B2_rdf_ideal_gas.csv` | conservative force off, $N = 1$, $a = 25$, box $10^3$, $\Delta t = 0.04$, 20 000 steps; `analysis_on = 1` for the $g(r)$ |
 | `B3_monomer_fluid.csv` (energy log), `B3_velocity_off_*`, `B3_velocity_on_*` | $\Delta t = 0.04$, 20 000 steps, all forces on (conservative force off for `off`), $a = 25$, box $10^3$; velocity analysis on |
 | `B2_analysis_rdf.csv` | energy log of the B2 run (not a $g(r)$ file despite its name; the notebook uses `B2_rdf_ideal_gas.csv`) |
 | `C1_a25_*` | $N = 1$, box $10^3$, $a = 25$, fresh start, 20 000 steps; $g(r)$ sampled every 20 steps from step 4000, blocks of 4000 steps |
-| `C2_a37_*`, `C3_a35_*`, `C3_a39_*`, `C3_a43_*`, `C3_a47_*`, `C4_a25_*` | $N = 1$, box $20 \times 10 \times 10$ (6000 beads), $a_{AB}$ = 37, 35, 39, 43, 47, 25 (control), demixed start, 60 000 steps, profile blocks of 5000 steps, pressure tensor every 10 steps; `_traj.pdb` frames every 10 000 (C2) or at the end |
+| `C2_a37_*`, `C3_a35_*`, `C3_a39_*`, `C3_a43_*`, `C3_a47_*`, `C4_a25_*` | $N = 1$, box $20 \times 10 \times 10$ (6000 beads), $a_{AB}$ = 37, 35, 39, 43, 47, 25 (control), demixed start, 60 000 steps, profile blocks of 5000 steps, pressure tensor every 10 steps; `_traj.pdb` frames every 10 000 steps (C2) or at the end; `C2_ovito_snapshot.png` is rendered from the last frame of `C2_a37_traj.pdb` |
 | `D1_chain_size.csv`, `D1_chain_snapshot.pdb` | $N = 5$, $a = 25$ for all pairs, box $10^3$, 20 000 steps, all forces on, chain-size analysis on. The ideal reference is $3(N-1)k_BT/C$ (each bond has $\langle r^2\rangle = 3k_BT/C$) |
 | `D2_N3/N5/N10_composition.csv`, `D2_composition_profiles.png` | box $20\times10\times10$, 6000 beads, $a_{AB} = 28$, $a_{AA} = 25$, demixed start, 60 000 steps, `chain_length` = 3, 5, 10, built separately. Averages of the trajectory frames after the first third, made by the D2 cell of the notebook |
 | `D3_N<N>_da<Da>_*` | $N$ = 3 ($\Delta a$ = 3, 5, 7), 5 (2, 3.5, 5), 10 (1, 1.5, 2); box $20\times10\times10$, 6000 beads, demixed start, 60 000 steps, `run_c.sh` |
