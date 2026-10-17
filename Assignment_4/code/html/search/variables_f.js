@@ -1,0 +1,16 @@
+var searchData=
+[
+  ['r_0',['r',['../struct_vectors.html#a573dde8650cc6c393c9dd90723f9d22c',1,'Vectors']]],
+  ['r_5fcut_1',['r_cut',['../struct_parameters.html#a4b8a8f27c9b67abc1d485c638f8fe780',1,'Parameters']]],
+  ['r_5fcyl_2',['R_cyl',['../struct_parameters.html#a153a8e6051427b7439f1631a9d2832b6',1,'Parameters']]],
+  ['r_5fmax_3',['R_max',['../struct_parameters.html#af8345a83845b985d9ec5e15a979f60b0',1,'Parameters']]],
+  ['r_5fmin_4',['R_min',['../struct_parameters.html#a42142e75c0c219eb4d95a5b8db8ae4e6',1,'Parameters']]],
+  ['r_5forifice_5',['R_orifice',['../struct_parameters.html#ad8e2f8563d56a729283bf99621cc5308',1,'Parameters']]],
+  ['r_5fshell_6',['r_shell',['../struct_parameters.html#a695f68b62284a2e6123f1fde646f86df',1,'Parameters']]],
+  ['radius_7',['radius',['../struct_vectors.html#a1b9bf5fe0ec8ca0495ade06acfe9298d',1,'Vectors']]],
+  ['restart_5fin_5ffilename_8',['restart_in_filename',['../struct_parameters.html#ae9292d3686a37a19c5464c5dee35a04b',1,'Parameters']]],
+  ['restart_5fout_5ffilename_9',['restart_out_filename',['../struct_parameters.html#a724c0fc7b18f85065856b9fe19519aec',1,'Parameters']]],
+  ['rij_10',['rij',['../struct_pair.html#a0c4cc23afeff14def4afa4f6bcb01f85',1,'Pair']]],
+  ['riw_11',['riw',['../struct_colllist.html#ac67ed2f156325836e72e28770643adc8',1,'Colllist']]],
+  ['run_12',['run',['../struct_parameters.html#aecd587c4be6cba0dd6af4ea0b4d9c183',1,'Parameters']]]
+];

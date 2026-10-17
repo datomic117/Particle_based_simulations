@@ -1,0 +1,65 @@
+/**
+@mainpage Documentation of DEM-PBS
+@tableofcontents
+
+This is the Discrete Element Method (DEM) code of the class Particle-based
+Simulations. Spherical particles feel gravity and linear soft-sphere contact
+forces with friction (the Cundall-Strack model). The box is periodic in x and y,
+with walls in z; more walls are added as functions (see walls.c). Units are SI
+throughout: m, kg, s.
+
+@section assign Assignment A4: silo discharge and the Beverloo law
+The A4 notebook is the assignment text. Every piece of code you write already
+exists as a function that compiles and is called from the right place: the
+<a href="todo.html">todo list</a> shows them all.
+
+Choose the run with the macro `RUN` at the top of setparameters.c, or on the
+command line; the other macros there (`NUM_TEST`, `V_IMPACT`, `DT_FRACTION`,
+`TILT_RATE`, `D_ORIFICE`, `T_DISCHARGE`) work the same way:
+
+    gcc -O3 -DRUN=1 -DNUM_TEST=2 *.c -o dem -lm     Part A, two particles head-on
+    gcc -O3 -DRUN=2 *.c -o dem -lm                  Part B, the tilted bed
+    gcc -O3 -DRUN=3 -DD_ORIFICE=8 *.c -o dem -lm    Parts C and D, the silo
+    ./dem > run.dat
+
+| Part | Run | Where you write code |
+|---|---|---|
+| A, restitution | `RUN_COLLISION` (1) | initialise_collision in initialise.c |
+| B, slope stability | `RUN_SLOPE` (2) | update_parameters in setparameters.c |
+| C, the silo | `RUN_SILO` (3) | cylinder_wall and silo_bottom_wall in walls.c, initialise_positions_silo in initialise.c, update_parameters in setparameters.c |
+| D, discharge | `RUN_SILO` (3) | count_in_silo in walls.c |
+
+@section output Output
+- The table on the screen: step, time, coordination number Z, potential,
+  kinetic and total energy, and N_silo, the number of particles in the silo.
+  Redirect it to a file and load that in the notebook.
+- `trajectories.xyz`: a frame every `num_dt_traj` steps, in extended-XYZ format
+  (position, radius and speed per particle; the box and the time in the second
+  line of every frame). OVITO reads it as it is: colour by the `speed` property.
+
+@section flow Simulation flow
+1. set_parameters -> alloc_memory -> initialise
+2. build_nbrlist and update_colllist, calculate_forces
+3. Velocity-Verlet loop: update_parameters (time-dependent settings), half-step
+   velocities, positions, update of the tangential contact displacements and of
+   the lists, forces, second half-step velocities, output.
+
+@section notes Implementation notes
+- The essential difference from molecular dynamics is that a contact has *memory*:
+  a sticking contact remembers the tangential displacement it has built up, which
+  is what the tangential contact spring acts on. Each history is kept where the
+  contact lives (beside the pair in the neighbor list for particle-particle
+  contacts, in a fixed per-particle slot for particle-wall contacts) and is
+  reset to zero when the contact ends.
+- A wall is a function: it returns whether a particle overlaps it, the vector
+  riw *from the closest point on the wall to the particle centre* (with the
+  squared length set), and the local wall velocity. It is registered in
+  p_parameters->wall_function[] and counted in num_walls.
+- The spring and dashpot constants are derived in set_parameters from the
+  restitution coefficients and the contact time; the time step is a fraction
+  `DT_FRACTION` of that contact time.
+- A restart facility exists (save_restart, load_restart) but the assignment does
+  not need it: every run settles from the same seed, so the state at t_tilt or
+  t_open is the same in every run. A restart would also lose the tangential
+  contact histories, which the restart file does not store.
+*/
