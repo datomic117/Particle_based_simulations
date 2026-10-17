@@ -1,11 +1,11 @@
 # Partical_based_simulations
-Repository for our first assignment for the course Particle based simulations
+Repository for my assignments for the course Particle based simulations
 
 # Contributors
-
-
-
 Assignment 1: Tomas Dadikozyan and Paolo Zichella
+
 Assignment 2: Tomas Dadikozyan and Olivier Toczyski
+
 Assignment 3: Tomas Dadikozyan and Jacob Scheepens
-Assignment 4:
+
+Assignment 4: Tomas Dadikozyan and Shree Patil
