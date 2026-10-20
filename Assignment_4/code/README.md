@@ -27,10 +27,12 @@ The settings that change from run to run (`RUN`, `NUM_TEST`, `V_IMPACT`, `DT_FRA
 | `run_a.sh` | the 24 restitution runs of Part A (table) |
 | `run_a_scan.sh` | 248 runs of Part A at 31 impact speeds (time-step explanation) |
 | `analyse_a.py` | Part A analysis: $e$ from the energy table, writes `../data/A_*.csv` and `../data/A_A?_v0.3.dat` |
+| `extract_frame.py` | cuts one frame (by time or index) out of a `trajectories.xyz` into a small text file (x y z radius speed); used by Part B, reused by C and D |
 
 ## What was added to the course code
 
 * **Part A:** `initialise_collision` in `initialise.c`: equal radii $R_\mathrm{min}$ and the matching mass, zero spin; one particle at height $1.05R$ moving down (A1), or two particles on a line along $x$ in the box middle, centres $2\cdot1.05R$ apart, moving towards each other (A2), each with `v_impact`.
+* **Part B:** the `RUN_SLOPE` branch of `update_parameters` in `setparameters.c`: the slope angle is zero until `t_tilt`, then `tilt_rate * (time - t_tilt)`; it is stored in `slope_angle` (rad) and gravity is set to $g(\sin\theta, 0, -\cos\theta)$. The walls do not move. `extract_frame.py` (see above).
 
 ## How the data in `../data/` were made
 
@@ -39,9 +41,12 @@ The settings that change from run to run (`RUN`, `NUM_TEST`, `V_IMPACT`, `DT_FRA
 | `A_restitution.csv` | `bash code/run_a.sh` then `python code/analyse_a.py`: `RUN=1`, `NUM_TEST` 1 and 2, `V_IMPACT` 0.1, 0.3, 1.0, `DT_FRACTION` 0.2, 0.1, 0.05, 0.025 (24 runs, 2 ms each). $E_\mathrm{kin,before}$ = table value at the last step before the first step with $E_\mathrm{pot}>0$; $E_\mathrm{kin,after}$ = at the first step after the last step with $E_\mathrm{pot}>0$; $e=\sqrt{E_\mathrm{kin,after}/E_\mathrm{kin,before}}$. `phase` is the fraction of a time step between the first touch and the first grid time with overlap |
 | `A_A1_v0.3.dat`, `A_A2_v0.3.dat` | the printed table of the 0.3 m/s, `DT_FRACTION` 0.05 runs (copied from `runs/A_?_v0.3_f0.05/run.dat`) |
 | `A_phase_scan.csv` | `bash code/run_a_scan.sh` then `python code/analyse_a.py`: both tests, the four `DT_FRACTION`, `V_IMPACT` 0.10 to 1.00 in steps of 0.03 (248 runs), same definition of $e$ |
+| `B_rate20.dat`, `B_rate10.dat` | the printed tables of `-DRUN=2` (20 °/s) and `-DRUN=2 -DTILT_RATE=10`, copied from `runs/B_rate20/run.dat` and `runs/B_rate10/run.dat` (one directory per run, as in Part A). Columns: step, time, $Z$, $E_\mathrm{pot}$, $E_\mathrm{kin}$, $E_\mathrm{tot}$, $N_\mathrm{silo}$ |
+| `B_frame_20deg.dat` | `python code/extract_frame.py runs/B_rate20/trajectories.xyz data/B_frame_20deg.dat --time 1.3`: the frame nearest to $t = 1.3$ s (frame 59, $t = 1.2917$ s, slope 19.83°), columns x y z radius speed |
 
 ## Known limitations
 
 * The Part A analysis uses the energy table at the grid times; $E_\mathrm{kin,before}$ needs at least one printed step before the first contact (checked by an assertion in `analyse_a.py`).
 * `analyse_a.py` hard-codes $R_\mathrm{min}=0.975$ mm (from `setparameters.c`) to compute the contact phase; it asserts that the phase predicts the first overlap step of every run.
 * Part A tests only the normal contact (head-on, no spin, no gravity); the tangential force and friction are not tested by it.
+* Part B: the onset angle $\theta_c$ is defined from the table ($E_\mathrm{kin} > 10^{-6}$ J, first time after `t_tilt`), so it depends on that threshold by about $\pm0.6^\circ$; each tilt rate was run once (same initial bed, no statistics over beds). `E_kin` of the table contains translation and rotation (`dynamics.c`) and `E_pot` is the elastic energy of the contact springs only, with no gravity term, so the table's `E_tot` is not the energy of the bed in the tilted gravity field. The trajectory file has no spins.

@@ -203,7 +203,13 @@ void update_parameters(struct Parameters *p_parameters, double time)
     /// theta = tilt_rate * (time - t_tilt). Store theta in
     /// p_parameters->slope_angle and set
     /// p_parameters->g = GRAVITY * (sin(theta), 0, -cos(theta)).
-    (void)time;
+    // theta is zero up to t_tilt (g stays vertical) and then grows linearly;
+    // the walls are not moved, only the direction of g in the box frame.
+    double theta = 0.0;
+    if (time > p_parameters->t_tilt)
+      theta = p_parameters->tilt_rate * (time - p_parameters->t_tilt);
+    p_parameters->slope_angle = theta;
+    p_parameters->g = (struct Vec3D){GRAVITY * sin(theta), 0.0, -GRAVITY * cos(theta)};
   }
   if (p_parameters->run == RUN_SILO)
   {
