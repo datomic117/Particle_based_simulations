@@ -215,5 +215,8 @@ void update_parameters(struct Parameters *p_parameters, double time)
   {
     /// \todo Task C2: open the orifice at t_open: set p_parameters->orifice_open
     /// to 1 once time >= t_open. Your silo_bottom_wall reads this flag.
+    // closed while the fill settles, open from t_open on (the flag is never reset)
+    if (time >= p_parameters->t_open)
+      p_parameters->orifice_open = 1;
   }
 }

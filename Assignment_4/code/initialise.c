@@ -137,7 +137,32 @@ void initialise_positions_silo(struct Parameters *p_parameters, struct Vectors *
     /// for the settled fill; the box has room for it. The fill then settles under gravity on the closed plate
     /// until t_open; no separate randomisation stage is needed. Until this is
     /// done the lattice of the starting code is used.
-    initialise_positions(p_parameters, p_vectors);
+    // Square lattice of spacing dl, sites at axis + (i, j) dl, layers k from the
+    // plate upwards; a site is kept when it lies inside the margin radius, and
+    // each kept site gets a random shift of at most 0.04 R_max per coordinate.
+    // The loops fill a whole layer before the next one starts.
+    const double R_max = p_parameters->R_max;
+    const double dl = 2.2 * R_max;
+    const double R_site = p_parameters->R_cyl - 1.1 * R_max; // sites must lie closer to the axis than this
+    const double jitter = 0.04 * R_max;
+    const double x0 = 0.5 * p_parameters->L.x, y0 = 0.5 * p_parameters->L.y;
+    const int m = (int)floor(R_site / dl);                    // sites at |i|, |j| <= m can be inside
+    size_t ipart = 0;
+    for (size_t k = 0; ipart < p_parameters->num_part; ++k)
+    {
+        double z = p_parameters->z_silo + 1.1 * R_max + k * dl;
+        for (int i = -m; i <= m && ipart < p_parameters->num_part; ++i)
+            for (int j = -m; j <= m && ipart < p_parameters->num_part; ++j)
+            {
+                double x = i * dl, y = j * dl;
+                if (x * x + y * y >= R_site * R_site)
+                    continue;
+                p_vectors->r[ipart].x = x0 + x + jitter * (2.0 * generate_uniform_random() - 1.0);
+                p_vectors->r[ipart].y = y0 + y + jitter * (2.0 * generate_uniform_random() - 1.0);
+                p_vectors->r[ipart].z = z + jitter * (2.0 * generate_uniform_random() - 1.0);
+                ++ipart;
+            }
+    }
 }
 
 void initialise_velocities(struct Parameters *p_parameters, struct Vectors *p_vectors)

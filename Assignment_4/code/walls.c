@@ -144,8 +144,20 @@ bool cylinder_wall(struct Parameters *p_parameters, double radius, struct Vec3D 
     /// plate: return false for a particle with r->z < z_silo, so the discharged
     /// material can spread over the floor below. bottom_wall, at the top of
     /// walls.c, is an example of the contract.
-    (void)p_parameters; (void)radius; (void)r; (void)riw; (void)vw;
-    return false;
+    // Only above the plate; the cylinder is cut at z_silo.
+    if (r->z < p_parameters->z_silo)
+        return false;
+    double dx = r->x - 0.5 * p_parameters->L.x; // horizontal offset of the centre from the axis
+    double dy = r->y - 0.5 * p_parameters->L.y;
+    double rc = sqrt(dx * dx + dy * dy);        // distance of the centre to the axis
+    if (rc <= p_parameters->R_cyl - radius)
+        return false; // rc > R_cyl - radius > 0 below, so rc = 0 (the axis) never gets here: no division by zero
+    // The closest wall point is at R_cyl from the axis in the direction of the
+    // particle, so riw = r - P = (rc - R_cyl) e_r, horizontal and pointing inwards.
+    double d = rc - p_parameters->R_cyl;
+    *riw = (struct DeltaR){d * dx / rc, d * dy / rc, 0.0, d * d};
+    *vw = (struct Vec3D){0};
+    return true;
 }
 
 /**
@@ -185,7 +197,26 @@ bool silo_bottom_wall(struct Parameters *p_parameters, double radius, struct Vec
     /// axis. Until this is done, a particle over the hole never touches the
     /// plate: the silo discharges, but through a hole whose edge the particles
     /// do not feel.
-    return false;
+    // The plate is the half-plane z = z_silo, rc' >= R_orifice. For a centre at
+    // distance rc < R_orifice from the axis the horizontal distance to any plate
+    // point (rc' >= R_orifice) is at least R_orifice - rc (triangle inequality),
+    // with equality only on the rim circle in the azimuth of the particle:
+    // P = axis + R_orifice e_r, at height z_silo. So riw = r - P =
+    // ((rc - R_orifice) e_r, dz). On the axis every rim point is equally close:
+    // take e_r = x-hat, the distance does not depend on the choice.
+    double ex = 1.0, ey = 0.0; // e_r; the arbitrary direction on the axis
+    if (rc > 0.0)
+    {
+        ex = dx / rc;
+        ey = dy / rc;
+    }
+    double d = rc - p_parameters->R_orifice; // negative: the centre is inside the rim
+    double sq = d * d + dz * dz;
+    if (sq >= radius * radius)
+        return false; // the rim is farther than one radius: free fall through the hole
+    *riw = (struct DeltaR){d * ex, d * ey, dz, sq};
+    *vw = (struct Vec3D){0};
+    return true;
 }
 
 size_t count_in_silo(struct Parameters *p_parameters, struct Vectors *p_vectors)
@@ -194,6 +225,10 @@ size_t count_in_silo(struct Parameters *p_parameters, struct Vectors *p_vectors)
     /// is above the plate (r.z > z_silo). main prints the count as the last
     /// column of its table, which then gives N(t), the number of particles in
     /// the silo against time.
-    (void)p_parameters; (void)p_vectors;
-    return 0;
+    // one loop over the particles: the centre above the plate means still in the silo
+    size_t n = 0;
+    for (size_t i = 0; i < p_parameters->num_part; ++i)
+        if (p_vectors->r[i].z > p_parameters->z_silo)
+            ++n;
+    return n;
 }

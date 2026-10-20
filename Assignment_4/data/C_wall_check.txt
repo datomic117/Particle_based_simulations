@@ -1,0 +1,25 @@
+wall_check: brute-force comparison of walls.c (R_cyl 0.0176999 m, z_silo 0.0530997 m, radius 0.000975..0.001024 m)
+
+C2 edge, R_orifice=6.996 mm, near the rim          n=100000 overlap= 54584 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=6.5e-08 R (54584 compared as vector) max|sq-brute|=5.0e-15 R^2
+C2 edge, R_orifice=6.996 mm, near the axis         n=100000 overlap=     0 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=0.0e+00 R (0 compared as vector) max|sq-brute|=0.0e+00 R^2
+C2 edge, R_orifice=0.9 mm, near the rim            n=100000 overlap= 61421 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=8.1e-08 R (49312 compared as vector) max|sq-brute|=1.0e-15 R^2
+C2 edge, R_orifice=0.9 mm, near the axis           n=100000 overlap= 69696 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=7.9e-08 R (65539 compared as vector) max|sq-brute|=8.7e-16 R^2
+C2 edge, R_orifice=0.5 mm, near the rim            n=100000 overlap= 75231 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=5.2e-08 R (30408 compared as vector) max|sq-brute|=6.4e-16 R^2
+C2 edge, R_orifice=0.5 mm, near the axis           n=100000 overlap= 79727 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=6.7e-08 R (72454 compared as vector) max|sq-brute|=4.4e-16 R^2
+C2 exactly on the axis (rc = 0), R_orifice=0.5 mm  n=  2000 overlap=  1443 flag mismatches=0 (borderline skipped 0) NaN/vw errors=0 not-closest=0 | max|riw-brute|=1.1e-16 R (0 compared as vector) max|sq-brute|=2.2e-16 R^2
+   real orifice (R_orifice=6.996 mm), centre on the axis 0.3 mm above the plane: overlap=0 (the rim is 7.00 mm away)
+
+continuity at the rim (R_orifice = 6.996 mm, radius 1 mm, dz = 0.4 mm): edge branch at rc = R_orifice - eps against the flat plate (0, 0, dz) at rc = R_orifice
+   eps = 1e-1 R_orifice = 6.996e-04 m: flags 1 1, |riw_edge - riw_flat| = 6.996e-04 m, |sq_edge - sq_flat| = 4.89e-07 m^2
+   eps = 1e-3 R_orifice = 6.996e-06 m: flags 1 1, |riw_edge - riw_flat| = 6.996e-06 m, |sq_edge - sq_flat| = 4.89e-11 m^2
+   eps = 1e-5 R_orifice = 6.996e-08 m: flags 1 1, |riw_edge - riw_flat| = 6.996e-08 m, |sq_edge - sq_flat| = 4.89e-15 m^2
+   eps = 1e-7 R_orifice = 6.996e-10 m: flags 1 1, |riw_edge - riw_flat| = 6.996e-10 m, |sq_edge - sq_flat| = 4.89e-19 m^2
+   eps = 1e-9 R_orifice = 6.996e-12 m: flags 1 1, |riw_edge - riw_flat| = 6.996e-12 m, |sq_edge - sq_flat| = 5.29e-23 m^2
+closed plate, 1e5 random points (rc up to 20 mm, also over the hole), 83214 in contact: deviations from the flat plane = 0
+open plate, 65214 random points with rc >= R_orifice: deviations from the flat plane = 0
+
+C1 cylinder, random points near the wall           n= 83455 overlap= 71386 flag mismatches=0 (borderline skipped 3) NaN/vw errors=0 not-closest=0 | max|riw-brute|=9.7e-08 R (71384 compared as vector) max|sq-brute|=1.4e-14 R^2
+   below the plate (z < z_silo): 16545 points, 0 reported as contact; static wall (vw = 0, riw.z = 0) violated: 0
+   particle exactly on the axis: overlap=0 (rc = 0 < R_cyl - radius, so the division by rc is never reached)
+
+ALL CHECKS PASSED (0 failed checks)
