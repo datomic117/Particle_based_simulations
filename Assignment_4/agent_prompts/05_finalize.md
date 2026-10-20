@@ -1,0 +1,15 @@
+Read agent_prompts/00_COMMON.md first. Parts A-D are done. This session only integrates, checks and packages. Do not change physics or re-run simulations unless a check proves a result wrong (then stop and tell the user).
+
+# Finalize: Lessons learned, execution, HTML, zip, checker
+
+## Steps
+1. Read CHANGELOG_A4.md fully, `A4.ipynb` answer cells, `code/README.md`. Write a checklist (in the changelog block) mapping every "Deliver" bullet and every "In the oral you should be able to" bullet of cells 10, 13, 16, 19 to the cell and data file that answers it. Fix gaps by editing answer cells only.
+2. Consistency pass: numbers in text equal printed outputs and data files; same symbols throughout; the Code map has every task row (A, B, C1, C2, C3, D2) with working relative links; the Build & run log lists every file in `data/` with its command and wall-clock; no `…` placeholders; no absolute paths; readability (short bullets, no repetition, easy to read aloud).
+3. **Sources (cell 8):** fill from the changelog: AI tools: Claude Code (Anthropic, Claude Sonnet 5.5); used for: C stubs, analysis scripts, analysis cells, answer text, Build & run log, README (itemised as in A3); other external: starter code DEM_student_v7.1.0 (course), Beverloo constants quoted in the task text, any literature the parts used; what the team did to verify (tests: wall_check, restitution recovery, Beverloo vs literature, ...). Keep the cell's structure.
+4. **Lessons learned (cell 23):** draft 6 to 10 short bullets grounded in the changelog `!` entries (what surprised, what bothers, what to do differently, which of the four methods first for a new problem and why), and put the visible line `*(DRAFT written by the AI assistant: Tomas and Shree, rewrite in your own words before submitting.)*` at the top. List this as an open TODO for the team in the changelog.
+5. `code/README.md` final: build line `gcc -O3 *.c -o dem -lm`, source table, additions, data table, known limitations. Remove no starter content from code except what the parts changed.
+6. Execute: `$PY -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=1800 A4.ipynb` from `Assignment_4/`; confirm all code cells have outputs and no errors; `verify_tasks.py` OK.
+7. HTML: `$PY nb2html.py A4.ipynb` -> `A4.html`.
+8. Zip: look at the layout of `Assignment_3/6_A3.zip` (`unzip -l`) and mimic it: `8_A4.zip` built with Python `zipfile` (forward-slash member names) containing `A4.ipynb`, `A4.html`, `code/` (sources, headers, README.md, helper scripts, tests; no binaries, no `runs`), `data/` (no trajectories). Exclude `agent_prompts/`, `CHANGELOG_A4.md`, `runs/`.
+9. `$PY check_my_submission.py 8_A4.zip --release agent_prompts/A4_release.ipynb`: fix every FAIL; explain each WARN (fix if cheap). Re-zip until clean.
+10. Changelog block "Finalize": checker output summary, file sizes of the zip, the open TODO list for the team (Lessons learned rewrite; skim the notebook once; things marked `!`). Final message to the user: what is ready, what they must do by hand.

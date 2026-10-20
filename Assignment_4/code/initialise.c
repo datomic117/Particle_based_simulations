@@ -57,11 +57,33 @@ void initialise_collision(struct Parameters *p_parameters, struct Vectors *p_vec
     /// along x in the middle of the box, centres 2 * 1.05 * R apart, moving
     /// towards each other with speed v_impact each. Until this is done the
     /// lattice of the starting code is used, at rest.
-    initialise_positions(p_parameters, p_vectors);
+    // Equal radii R_min and the matching mass (this overrides the random radii
+    // of initialise_particles), no rotation. The particles start 0.05 R apart
+    // from touching (centre at 1.05 R from the wall, or 2.1 R from each other),
+    // so the contact begins during the run and the tangential histories
+    // (zeroed in alloc_nbrlist / alloc_colllist) start empty.
+    const double R = p_parameters->R_min;
+    const double m = p_parameters->density * (4.0 / 3.0) * PI * R * R * R;
+    const double v0 = p_parameters->v_impact;
+    const struct Vec3D mid = {0.5 * p_parameters->L.x, 0.5 * p_parameters->L.y, 0.5 * p_parameters->L.z};
     for (size_t i = 0; i < p_parameters->num_part; ++i)
     {
+        p_vectors->radius[i] = R;
+        p_vectors->mass[i] = m;
         p_vectors->v[i] = (struct Vec3D){0.0, 0.0, 0.0};
         p_vectors->omega[i] = (struct Vec3D){0.0, 0.0, 0.0};
+    }
+    if (p_parameters->num_part == 1) // A1: above the bottom wall, moving down
+    {
+        p_vectors->r[0] = (struct Vec3D){mid.x, mid.y, 1.05 * R};
+        p_vectors->v[0].z = -v0;
+    }
+    else // A2: two particles on a line along x, moving towards each other
+    {
+        p_vectors->r[0] = (struct Vec3D){mid.x - 1.05 * R, mid.y, mid.z};
+        p_vectors->r[1] = (struct Vec3D){mid.x + 1.05 * R, mid.y, mid.z};
+        p_vectors->v[0].x = v0;
+        p_vectors->v[1].x = -v0;
     }
 }
 
