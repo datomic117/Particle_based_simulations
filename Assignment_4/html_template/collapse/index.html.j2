@@ -1,0 +1,6 @@
+{%- extends 'lab/index.html.j2' -%}
+{% block input_group -%}
+{%- if 'hide-input' in cell.metadata.get('tags', []) or cell.metadata.get('jupyter', {}).get('source_hidden') -%}
+<details class="hidecode"><summary>Show code</summary>{{ super() }}</details>
+{%- else -%}{{ super() }}{%- endif -%}
+{% endblock input_group %}
