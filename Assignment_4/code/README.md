@@ -7,7 +7,8 @@ A discrete element code (linear spring-dashpot normal force, Cundall-Strack tang
 Plain C99 with the standard library; the only dependencies are `gcc` and `libm`. Run from `Assignment_4/`, one directory per run:
 
 ```
-gcc -O3 code/*.c -o dem -lm                       # production, default settings of setparameters.c
+cd code && gcc -O3 *.c -o dem -lm && cd ..        # the build of the hand-in, inside code/ (default set-up RUN=2, the tilted bed)
+gcc -O3 code/*.c -o dem -lm                       # the same, from Assignment_4/
 gcc -g -Wall -Wextra code/*.c -o dem_debug -lm    # debugging
 mkdir -p runs/A_1_v0.3_f0.05 && gcc -O3 -DRUN=1 -DNUM_TEST=1 -DV_IMPACT=0.3 -DDT_FRACTION=0.05 code/*.c -o runs/A_1_v0.3_f0.05/dem.exe -lm \
   && (cd runs/A_1_v0.3_f0.05 && ./dem.exe > run.dat)    # one Part A run
@@ -36,6 +37,7 @@ The settings that change from run to run (`RUN`, `NUM_TEST`, `V_IMPACT`, `DT_FRA
 | `run_d.sh` | Part D: the four extra silo runs D6, D8, D9 (Beverloo) and D3 (small orifice), in parallel, one directory each |
 | `collect_times.sh` | Part D3: writes the wall-clock times and step counts of the five silo runs to `../data/D_walltimes.csv` (cost estimate) |
 | `analyse_d.py` | Part D: reduces a silo `trajectories.xyz` to small files: exit time of every grain (`../data/D_exit_D7.csv`), mean speed map in (r, z) (`../data/D_speedmap_D7.csv`), or with `--stats` the per-frame speeds of the grains above the plate (`../data/D_speedstats_D3.csv`) |
+| `README.txt`, `version.txt`, `Doxyfile`, `DoxygenLayout.xml`, `mainpage.dox` | documentation files of the starting code, unchanged (the generated `html/` of the starting code is not part of the hand-in) |
 
 ## What was added to the course code
 
@@ -59,7 +61,7 @@ The settings that change from run to run (`RUN`, `NUM_TEST`, `V_IMPACT`, `DT_FRA
 | `D7.dat` | the printed table of the silo run `-DRUN=3` (defaults: 7500 particles, $D = 7\,d_p$, 2.3 s, the orifice opens at 0.3 s), copied from `runs/D7/run.dat`. The base of Part C and Part D |
 | `C_frame_before_open.dat` | `python code/extract_frame.py runs/D7/trajectories.xyz data/C_frame_before_open.dat --frame 13`: the last frame before $t_\mathrm{open}$ (frame 13, $t = 0.2846$ s), columns x y z radius speed |
 | `C_snapshot_settled.png` | `python code/render_ovito.py runs/D7/trajectories.xyz data/C_snapshot_settled.png --time 0.286 --zrange 51 113 --xhalf 20 --vmax 0.001 --size 800 1000`: slab of 4 mm through the axis at frame 13, speed scale 0 to 1 mm/s |
-| `C_wall_check.txt` | `gcc -O2 -Wall -Wextra -Icode code/tests/wall_check.c code/walls.c -o runs/_check/wall_check.exe -lm && runs/_check/wall_check.exe > data/C_wall_check.txt` (30 s): about 8e5 random particles against a brute-force closest point |
+| `C_wall_check.txt` | `gcc -O2 -Wall -Wextra -Icode code/tests/wall_check.c code/walls.c -o runs/_check/wall_check.exe -lm && runs/_check/wall_check.exe > data/C_wall_check.txt` (30 s): 685 455 random particles against a brute-force closest point (the eight comparison lines of the file add up to this number) |
 | `C_noedge_D7.dat` | `bash code/run_c_noedge.sh`, then `cp runs/C_noedge/run.dat data/C_noedge_D7.dat`: the table of the silo run with the edge of the hole switched off (used in the C2 answer only) |
 | `C_seed1_edge.dat` ... `C_seed4_noedge.dat` | `bash code/run_c_seeds.sh`, then `cp runs/C_seed<s>_edge/run.dat data/C_seed<s>_edge.dat` (and `noedge`): the tables of the silo run (`-DRUN=3`, defaults) for the seeds 1 to 4, edge on and off. Seed 12345 is `D7.dat` (edge on) and `C_noedge_D7.dat` (off) |
 | `C_edge_seeds.csv` | `python code/analyse_c.py seeds data/C_edge_seeds.csv`: per seed and edge setting the rate $Q$ (straight-line fit of $N(t)$ from 10 % to 60 % gone, the definition of D2) with its error (scatter of 4 pieces of the window), the time of 10 % gone, the fraction gone and $N$ at the end, $Z$ and $E_\mathrm{kin}$ at $t_\mathrm{open}$ |
